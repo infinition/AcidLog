@@ -1,3 +1,5 @@
+## ! RELEASE WILL DROP SOON !
+
 ## AcidLog
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=000)
 ![Status](https://img.shields.io/badge/Status-Beta-orange.svg)
@@ -5,12 +7,15 @@
 
 
 
-
-
-AcidLog is a sophisticated real-time security monitoring and visualization tool designed for cybersecurity professionals. It provides an intuitive interface for tracking, analyzing, and responding to security events in real-time.
 <p align="center">
 <img width="307" height="307" alt="acidlog"  src="https://github.com/user-attachments/assets/42eb4b5b-7633-4eae-a342-0605696032c1" />
 </p>
+
+AcidLog is a sophisticated real-time security monitoring and visualization tool designed for cybersecurity professionals. It provides an intuitive interface for tracking, analyzing, and responding to security events in real-time.
+
+
+<img width="1192" height="1112" alt="image" src="https://github.com/user-attachments/assets/6780fe45-4c49-4593-92e5-efb941d4aa5c" />
+
 
 ## 📚 Table of Contents
 
