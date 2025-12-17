@@ -1,0 +1,3771 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AcidLog — Real-time Security Monitor</title>
+
+  <link rel="icon" type="image/x-icon" id="favicon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <style>
+    /* --- RESET & VARIABLES --- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #0f1012;
+      --bg-tertiary: #151719;
+      --bg-card: #1a1d20;
+      --text-primary: #e8f4f0;
+      --text-secondary: #94a3a0;
+      --text-muted: #687471;
+      --accent-acid: #00ff41;
+      --accent-cyan: #00ffdd;
+      --accent-orange: #ff9500;
+      --accent-red: #ff3366;
+      --accent-yellow: #ffdd00;
+      --border: #1e2326;
+      --border-light: #2a2f33;
+      --glow-acid: rgba(0, 255, 65, .35);
+      --graph-line: #00ff41;
+      --graph-fill: #00ff4130;
+      --graph-bg-gradient: radial-gradient(circle at 20% 30%, rgba(0, 255, 65, 0.15), transparent 60%),
+        radial-gradient(circle at 80% 70%, rgba(0, 255, 220, 0.12), transparent 60%),
+        radial-gradient(circle at 50% 50%, rgba(255, 0, 100, 0.08), transparent 70%);
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      --bubble-icon-size: 32px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-family);
+      background: var(--bg-primary);
+      color: var(--text-primary)
+    }
+
+    /* Imported fonts support */
+    @font-face {
+      font-family: 'CustomFont';
+      src: url('custom-font.woff2') format('woff2');
+      font-display: swap;
+    }
+
+    /* --- LAYOUT --- */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      z-index: 100
+    }
+
+    /* --- LOGO --- */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: .3px
+    }
+
+    .logo-img {
+      width: 90px;
+      height: 90px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden
+    }
+
+    .logo-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block
+    }
+
+    .logo-text {
+      background: linear-gradient(90deg, var(--accent-acid), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    /* --- CONTROLS --- */
+    .header-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .btn {
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: .2s;
+      font-size: .85rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap
+    }
+
+    .btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent-acid)
+    }
+
+    .btn.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary);
+      border-color: var(--accent-acid);
+      font-weight: 600
+    }
+
+    .btn.mini {
+      padding: 4px 8px;
+      font-size: .75rem
+    }
+
+    .btn.icon-only {
+      padding: 6px;
+      min-width: 28px;
+      justify-content: center
+    }
+
+    /* --- SEARCH & LANG --- */
+    .lang-selector {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      cursor: pointer
+    }
+
+    .lang-selector:hover {
+      background: var(--bg-card)
+    }
+
+    .lang-current {
+      font-size: .85rem;
+      font-weight: 600
+    }
+
+    .search-bar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .search-input {
+      padding: 6px 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: .85rem;
+      width: 200px
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent-acid)
+    }
+
+    .search-controls {
+      display: flex;
+      gap: 4px
+    }
+
+    .search-nav {
+      padding: 4px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .75rem
+    }
+
+    .search-nav:hover {
+      background: var(--bg-card)
+    }
+
+    /* --- STATS --- */
+    .stats-bar {
+      display: flex;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      gap: 14px;
+      overflow-x: auto
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      min-width: 82px
+    }
+
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent-acid), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .stat-label {
+      font-size: .7rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .stat.hidden {
+      display: none
+    }
+
+    /* --- TIMELINE & GRAPH --- */
+    .timeline-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg-primary);
+      overflow: hidden
+    }
+
+    .timeline-wrapper {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column
+    }
+
+    .graph-area {
+      flex: 1;
+      position: relative;
+      min-height: 60%
+    }
+
+    .graph-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    .events-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .events-layer.gradient-bg {
+      background: var(--graph-bg-gradient);
+      background-size: 200% 200%;
+      animation: acidShift 12s ease-in-out infinite alternate;
+      mix-blend-mode: screen;
+    }
+
+    .events-layer.flat-bg {
+      background: transparent;
+    }
+
+    .events-layer.image-bg {
+      background-size: cover;
+      background-position: center;
+      opacity: 0.2;
+    }
+
+    @keyframes acidShift {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 50% 100%;
+      }
+    }
+
+    .y-axis {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 40px;
+      background: rgba(0, 0, 0, 0.3);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 5px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      z-index: 5;
+    }
+
+    .y-tick {
+      text-align: right;
+    }
+
+    /* --- BUBBLES --- */
+    .event-bubble {
+      position: absolute;
+      min-width: 44px;
+      height: 36px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      pointer-events: auto;
+      transition: transform .15s cubic-bezier(.4, 0, .2, 1);
+      z-index: 10;
+      transform: translateX(-50%) translateY(-100%);
+      background: linear-gradient(135deg, var(--accent-acid), var(--accent-cyan));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .event-bubble.single {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .event-bubble.single img {
+      width: var(--bubble-icon-size, 32px);
+      height: var(--bubble-icon-size, 32px);
+    }
+
+    .event-bubble.clustered {
+      background: linear-gradient(135deg, rgba(255, 149, 0, 0.95), rgba(255, 51, 102, 0.95));
+      min-width: 50px;
+      font-size: 15px;
+    }
+
+    .event-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(0, 255, 65, 0.9);
+    }
+
+    .event-bubble.clustered::after {
+      border-top-color: rgba(255, 51, 102, 0.95);
+    }
+
+    .event-bubble:hover {
+      transform: translateX(-50%) translateY(-100%) scale(1.15);
+      z-index: 20
+    }
+
+    .event-bubble.spotlight {
+      z-index: 50;
+      transform: translateX(-50%) translateY(-100%) scale(1.3);
+      border-color: #fff;
+      box-shadow: 0 0 15px var(--accent-acid);
+    }
+
+    /* --- POPUPS & TOOLTIPS --- */
+    .cluster-popup {
+      position: fixed;
+      background: rgba(26, 29, 32, 0.98);
+      border: 1px solid var(--accent-acid);
+      border-radius: 12px;
+      padding: 0;
+      min-width: 320px;
+      max-width: 450px;
+      z-index: 200;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+      display: none;
+    }
+
+    .cluster-popup.show {
+      display: block;
+    }
+
+    .cluster-popup-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cluster-popup-title {
+      font-weight: 600;
+      color: var(--accent-acid);
+    }
+
+    .cluster-popup-content {
+      padding: 16px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .cluster-event-detail {
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cluster-popup-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(15, 16, 18, 0.6);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cluster-tab {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      transition: all .2s;
+      border: 1px solid transparent;
+    }
+
+    .cluster-tab:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .cluster-tab.active {
+      background: rgba(0, 255, 65, 0.2);
+      border-color: var(--accent-acid);
+    }
+
+    .cluster-nav-arrow {
+      background: rgba(0, 255, 65, 0.3);
+      border: 1px solid var(--accent-acid);
+      color: var(--text-primary);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      transition: .2s;
+    }
+
+    .cluster-nav-arrow:hover {
+      background: rgba(0, 255, 65, 0.5);
+    }
+
+    .event-tooltip {
+      position: absolute;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-acid);
+      border-radius: 8px;
+      padding: 10px;
+      min-width: 220px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 100
+    }
+
+    .event-tooltip.show {
+      opacity: 1
+    }
+
+    .tooltip-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--accent-acid)
+    }
+
+    .tooltip-time {
+      font-size: .75rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px
+    }
+
+    .tooltip-desc {
+      font-size: .85rem;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow: hidden;
+    }
+
+    /* --- WIDGETS --- */
+    .curve-mode-toggle {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      z-index: 50;
+      background: rgba(20, 22, 25, .9);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+      backdrop-filter: blur(4px)
+    }
+
+    .curve-mode-btn {
+      padding: 4px 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: .75rem;
+      border-radius: 4px;
+      transition: .2s
+    }
+
+    .curve-mode-btn.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary);
+      font-weight: 600
+    }
+
+    .scale-widget {
+      position: absolute;
+      left: 50px;
+      top: 10px;
+      z-index: 50
+    }
+
+    .scale-fab {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(4px)
+    }
+
+    .scale-fab:hover {
+      background: rgba(255, 255, 255, .10)
+    }
+
+    .scale-panel {
+      position: absolute;
+      left: 0;
+      top: 42px;
+      background: linear-gradient(180deg, #0e1113, #0b0d0f);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: none;
+      gap: 10px
+    }
+
+    .scale-panel.open {
+      display: flex
+    }
+
+    .scale-panel .vslider {
+      writing-mode: bt-lr;
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      width: 22px;
+      height: 120px;
+      background: transparent
+    }
+
+    .scale-panel .toggle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: .7rem;
+      color: var(--text-secondary)
+    }
+
+    .scale-panel .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-acid);
+      margin-top: 6px
+    }
+
+    .scale-panel .dot.off {
+      background: #666
+    }
+
+    /* --- SPLIT & CONTROL --- */
+    .split-container {
+      position: absolute;
+      inset: 0;
+      display: none
+    }
+
+    .split-container.active {
+      display: flex
+    }
+
+    .split-left {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column
+    }
+
+    .split-right {
+      width: 400px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding-top: 10px
+    }
+
+    .split-divider {
+      width: 6px;
+      background: var(--bg-tertiary);
+      cursor: col-resize;
+      position: relative
+    }
+
+    .split-divider:hover {
+      background: var(--accent-acid)
+    }
+
+    .time-axis {
+      height: 36px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      padding-left: 50px;
+      margin-bottom: 8px
+    }
+
+    .time-ticks {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: .68rem;
+      color: var(--text-secondary)
+    }
+
+    .control-panel {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px
+    }
+
+    .control-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px
+    }
+
+    .control-row:last-child {
+      margin-bottom: 0
+    }
+
+    .range-slider {
+      flex: 1;
+      position: relative;
+      height: 72px;
+      touch-action: none;
+      cursor: pointer
+    }
+
+    .slider-histogram {
+      position: absolute;
+      inset: 0 0 24px 0;
+      opacity: .35
+    }
+
+    .slider-track {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 6px;
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px
+    }
+
+    .slider-selection {
+      position: absolute;
+      bottom: 6px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--accent-acid), var(--accent-cyan));
+      border-radius: 2px;
+      cursor: grab
+    }
+
+    .slider-selection.dragging {
+      cursor: grabbing
+    }
+
+    .slider-thumb {
+      position: absolute;
+      bottom: 0;
+      width: 18px;
+      height: 18px;
+      background: var(--accent-acid);
+      border: 2px solid var(--bg-primary);
+      border-radius: 50%;
+      cursor: grab;
+      transform: translateX(-50%);
+      transition: transform .1s
+    }
+
+    .slider-thumb:active {
+      cursor: grabbing;
+      transform: translateX(-50%) scale(1.15)
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .filter-pill {
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: .2s;
+      font-size: .8rem;
+      display: flex;
+      align-items: center;
+      gap: 4px
+    }
+
+    .filter-pill:hover {
+      border-color: var(--accent-acid);
+      color: var(--text-primary)
+    }
+
+    .filter-pill.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary);
+      border-color: var(--accent-acid);
+      font-weight: 600
+    }
+
+    .vertical-view {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 16px;
+      padding-top: 10px;
+      display: none
+    }
+
+    .vertical-view.active {
+      display: block
+    }
+
+    /* --- EVENT CARDS --- */
+    .event-card {
+      background: var(--bg-card);
+      border-left: 3px solid var(--accent-acid);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .5s cubic-bezier(.23, 1, .32, 1), opacity .5s ease
+    }
+
+    .event-card.show {
+      max-height: 200px;
+      opacity: 1
+    }
+
+    .event-card:hover {
+      background: var(--bg-tertiary)
+    }
+
+    .event-card.critical {
+      border-left-color: var(--accent-red)
+    }
+
+    .event-card.high {
+      border-left-color: var(--accent-orange)
+    }
+
+    .event-card.warning {
+      border-left-color: var(--accent-yellow)
+    }
+
+    .event-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px
+    }
+
+    .event-card-title {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .event-card-time {
+      font-size: .75rem;
+      color: var(--text-secondary)
+    }
+
+    .event-card-desc {
+      font-size: .9rem;
+      color: var(--text-secondary)
+    }
+
+    .event-card-title img {
+      width: 20px !important;
+      height: 20px !important;
+      vertical-align: middle;
+    }
+
+    .event-card.clickable {
+      cursor: pointer;
+    }
+
+    /* --- SETTINGS MODAL --- */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      z-index: 199
+    }
+
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -48%) scale(.95);
+      width: min(90vw, 1100px);
+      max-height: 85vh;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .3s cubic-bezier(.23, 1, .32, 1);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, .4)
+    }
+
+    .settings-panel.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1)
+    }
+
+    .settings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-tertiary)
+    }
+
+    .settings-header h2 {
+      font-size: 1.2rem;
+      background: linear-gradient(90deg, var(--accent-acid), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .close-btn:hover {
+      background: var(--accent-red);
+      border-color: var(--accent-red)
+    }
+
+    .settings-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden
+    }
+
+    .settings-nav {
+      width: 220px;
+      background: var(--bg-primary);
+      border-right: 1px solid var(--border);
+      padding: 12px
+    }
+
+    .nav-item {
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: .2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .9rem;
+      color: var(--text-secondary)
+    }
+
+    .nav-item:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary)
+    }
+
+    .nav-item.active {
+      background: var(--bg-card);
+      color: var(--accent-acid);
+      border-left: 2px solid var(--accent-acid)
+    }
+
+    .nav-icon {
+      width: 18px;
+      text-align: center
+    }
+
+    .settings-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto
+    }
+
+    .settings-section {
+      display: none
+    }
+
+    .settings-section.active {
+      display: block
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      color: var(--accent-acid)
+    }
+
+    .setting-group {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px
+    }
+
+    .setting-row {
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .setting-row:last-child {
+      margin-bottom: 0
+    }
+
+    .setting-label {
+      font-size: .85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px
+    }
+
+    .setting-input {
+      padding: 10px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      transition: .2s
+    }
+
+    .setting-input:focus {
+      outline: none;
+      border-color: var(--accent-acid);
+      box-shadow: 0 0 0 3px var(--glow-acid)
+    }
+
+    .setting-slider {
+      width: 100%;
+      margin: 8px 0
+    }
+
+    .slider-value {
+      display: inline-block;
+      min-width: 60px;
+      text-align: right;
+      color: var(--accent-cyan)
+    }
+
+    .setting-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer
+    }
+
+    .setting-checkbox input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer
+    }
+
+    .grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    /* Color Input */
+    input[type="color"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 4px
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border-radius: 4px;
+      border: 1px solid var(--border)
+    }
+
+    /* --- ALERTS & MISC --- */
+    .live-indicator {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-acid);
+      border-radius: 20px;
+      z-index: 220;
+      cursor: pointer
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-acid);
+      border-radius: 50%;
+      animation: pulse 1s infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 300
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-acid);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      min-width: 240px;
+      animation: slideIn .3s
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1
+      }
+    }
+
+    .toast.error {
+      border-color: var(--accent-red)
+    }
+
+    .zoom-badge {
+      position: fixed;
+      right: 18px;
+      bottom: 90px;
+      z-index: 120;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-acid);
+      border-radius: 14px;
+      padding: 6px 10px;
+      font-size: .8rem
+    }
+
+    .zoom-badge.hide {
+      display: none
+    }
+
+    /* Rules editor */
+    .rule-item {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px
+    }
+
+    .rule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px
+    }
+
+    .rule-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .rule-bubble-preview {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px
+    }
+
+    .rule-bubble-preview img {
+      width: 30px;
+      height: 30px
+    }
+
+    .rule-info {
+      flex: 1
+    }
+
+    .rule-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px
+    }
+
+    .rule-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .rule-input-label {
+      font-size: .75rem;
+      color: var(--text-secondary)
+    }
+
+    .rule-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap
+    }
+
+    /* Dropdowns */
+    .sound-dropdown {
+      position: relative
+    }
+
+    .sound-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      z-index: 100
+    }
+
+    .sound-dropdown.open .sound-dropdown-menu {
+      display: block
+    }
+
+    .sound-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .sound-option:hover {
+      background: var(--bg-tertiary)
+    }
+
+    .sound-play-btn {
+      padding: 2px 6px;
+      background: var(--accent-acid);
+      color: var(--bg-primary);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: .75rem
+    }
+
+    .icon-dropdown {
+      position: relative
+    }
+
+    .icon-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      display: none;
+      z-index: 100;
+      width: 250px;
+      max-height: 300px;
+      overflow-y: auto
+    }
+
+    .icon-dropdown.open .icon-dropdown-menu {
+      display: block
+    }
+
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px
+    }
+
+    .icon-option {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .icon-option:hover {
+      border-color: var(--accent-acid);
+      transform: scale(1.1)
+    }
+
+    .icon-option img {
+      max-width: 70%;
+      max-height: 70%
+    }
+
+    /* Icon Gallery */
+    .icon-gallery {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      min-height: 50px
+    }
+
+    .icon-item {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .icon-item:hover {
+      border-color: var(--accent-acid);
+      transform: scale(1.1)
+    }
+
+    .icon-item img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain
+    }
+
+    /* Icon Selector Modal */
+    .icon-selector-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 500px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 300;
+      display: none;
+    }
+
+    .icon-selector-modal.show {
+      display: block;
+    }
+
+    .icon-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .icon-selector-item {
+      width: 50px;
+      height: 50px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--bg-primary);
+      transition: .2s;
+    }
+
+    .icon-selector-item:hover {
+      border-color: var(--accent-acid);
+      transform: scale(1.1);
+    }
+
+    .icon-picker {
+      width: 50px;
+      height: 50px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: var(--bg-tertiary);
+      transition: .2s;
+      font-size: 24px;
+    }
+
+    /* Profile selector */
+    .profile-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px
+    }
+
+    .profile-tab {
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .85rem
+    }
+
+    .profile-tab.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary)
+    }
+
+    .profile-tab.add {
+      border-style: dashed
+    }
+
+    /* Translation editor */
+    .lang-editor {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px
+    }
+
+    .lang-tab {
+      padding: 6px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer
+    }
+
+    .lang-tab.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary)
+    }
+
+    .lang-tab.add {
+      background: transparent;
+      border-style: dashed
+    }
+
+    .translation-grid {
+      display: grid;
+      gap: 12px
+    }
+
+    .translation-item {
+      display: grid;
+      grid-template-columns: 80px 150px 1fr;
+      gap: 10px;
+      align-items: center
+    }
+
+    .translation-ref {
+      font-size: .75rem;
+      color: var(--text-muted);
+      font-family: monospace
+    }
+
+    .translation-key {
+      font-size: .85rem;
+      color: var(--text-secondary)
+    }
+
+    .translation-input {
+      padding: 6px 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary)
+    }
+
+    /* Font gallery */
+    .font-gallery {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px
+    }
+
+    .font-item {
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .85rem
+    }
+
+    .font-item:hover {
+      border-color: var(--accent-acid)
+    }
+
+    .font-item.active {
+      background: var(--accent-acid);
+      color: var(--bg-primary)
+    }
+
+    @media (max-width:768px) {
+      .settings-panel {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        top: 0;
+        left: 0;
+        transform: none;
+        border-radius: 0
+      }
+
+      .settings-panel.open {
+        transform: none
+      }
+
+      .settings-body {
+        flex-direction: column
+      }
+
+      .settings-nav {
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+        padding: 8px;
+        border-right: none;
+        border-bottom: 1px solid var(--border)
+      }
+
+      .nav-item {
+        white-space: nowrap
+      }
+
+      .grid-inputs {
+        grid-template-columns: 1fr
+      }
+
+      .split-right {
+        width: 100%
+      }
+
+      .rule-controls {
+        grid-template-columns: 1fr
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary)
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-tertiary);
+      border-radius: 4px
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-acid)
+    }
+  </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-img"><img id="logoImg" src="" alt="AcidLog" onerror="this.style.display='none'"></div>
+                <div class="logo-text" id="logoText">AcidLog</div>
+              </div>
+            <div class="header-controls">
+                <button class="btn" id="groupBtn">🫧 <span id="groupBtnText">Grouper bulles</span></button>
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Rechercher...">
+                    <div class="search-controls" id="searchControls" style="display:none">
+                        <button class="search-nav" id="searchPrev">◀</button>
+                        <span id="searchCount" style="font-size:.8rem;color:var(--text-secondary)">0/0</span>
+                        <button class="search-nav" id="searchNext">▶</button>
+                      </div>
+                  </div>
+                <div class="lang-selector" id="langSelector">
+                    <span class="lang-current" id="langCurrent">🌍 FR</span>
+                    <span>▼</span>
+                  </div>
+                <button class="btn" id="viewBtn"><span id="viewBtnText">📊 Vue verticale</span></button>
+                <button class="btn" id="settingsBtn"><span id="settingsBtnText">⚙️ Réglages</span></button>
+              </div>
+          </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat" data-m="total">
+                <div class="stat-value" id="totalEvents">0</div>
+                <div class="stat-label" id="statLabelTotal">Total</div>
+              </div>
+            <div class="stat" data-m="critical">
+                <div class="stat-value" id="criticalEvents">0</div>
+                <div class="stat-label" id="statLabelCritical">Critiques</div>
+              </div>
+            <div class="stat" data-m="epm">
+                <div class="stat-value" id="eventsPerMin">0</div>
+                <div class="stat-label" id="statLabelEPM">Evts/min</div>
+              </div>
+            <div class="stat" data-m="monitors">
+                <div class="stat-value" id="activeMonitors">0</div>
+                <div class="stat-label" id="statLabelMonitors">Moniteurs</div>
+              </div>
+            <div class="stat" data-m="peak">
+                <div class="stat-value" id="peakActivity">0</div>
+                <div class="stat-label" id="statLabelPeak">Pic</div>
+              </div>
+            <div class="stat" data-m="risk">
+                <div class="stat-value" id="riskLevel">0</div>
+                <div class="stat-label" id="statLabelRisk">Risque</div>
+              </div>
+          </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+            <!-- Normal view -->
+            <div class="timeline-wrapper" id="timelineWrapper">
+                <div class="graph-area">
+                    <div class="y-axis" id="yAxis"></div>
+                    <div class="scale-widget">
+                        <div id="scaleFab" class="scale-fab" title="Échelle"><span>⤢</span></div>
+                        <div id="scalePanel" class="scale-panel">
+                            <input id="scaleSlider" class="vslider" type="range" min="1" max="100" value="50"
+                step="1" />
+                            <div class="toggle">
+                                <label><input id="scaleAuto" type="checkbox" checked> AUTO</label>
+                                <div id="scaleDot" class="dot"></div>
+                              </div>
+                          </div>
+                      </div>
+                    <div class="curve-mode-toggle" id="curveModeToggle">
+                        <button class="curve-mode-btn active" data-curvemode="single" id="curveSingle">Une
+              courbe</button>
+                        <button class="curve-mode-btn" data-curvemode="multi" id="curveMulti">Multi courbes</button>
+                      </div>
+                    <canvas class="graph-canvas" id="mainGraph"></canvas>
+                    <div class="events-layer gradient-bg" id="eventsLayer"></div>
+                  </div>
+                <div class="time-axis">
+                    <div class="time-ticks" id="timeTicks"></div>
+                  </div>
+              </div>
+
+            <!-- Vertical view -->
+            <div class="vertical-view" id="verticalView"></div>
+
+            <!-- Split view -->
+            <div class="split-container" id="splitContainer">
+                <div class="split-left">
+                    <div class="graph-area">
+                        <div class="y-axis" id="yAxisSplit"></div>
+                        <canvas class="graph-canvas" id="splitGraph"></canvas>
+                        <div class="events-layer gradient-bg" id="splitEventsLayer"></div>
+                      </div>
+                    <div class="time-axis">
+                        <div class="time-ticks" id="splitTimeTicks"></div>
+                      </div>
+                  </div>
+                <div class="split-divider" id="splitDivider"></div>
+                <div class="split-right" id="splitCards"></div>
+              </div>
+          </div>
+
+        <!-- Controls -->
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="range-slider" id="rangeSlider">
+                    <canvas class="slider-histogram" id="sliderHistogram"></canvas>
+                    <div class="slider-track"></div>
+                    <div class="slider-selection" id="sliderSelection"></div>
+                    <div class="slider-thumb" id="leftThumb" style="left:0%"></div>
+                    <div class="slider-thumb" id="rightThumb" style="left:100%"></div>
+                  </div>
+              </div>
+            <div class="control-row">
+                <div class="filter-group">
+                    <button class="filter-pill active" data-range="5m">5m</button>
+                    <button class="filter-pill" data-range="15m">15m</button>
+                    <button class="filter-pill" data-range="1h">1h</button>
+                    <button class="filter-pill" data-range="6h">6h</button>
+                    <button class="filter-pill" data-range="1d">24h</button>
+                    <button class="filter-pill" data-range="1w">1w</button>
+                  </div>
+                <div class="filter-group" id="ruleFilters">
+                    <button class="filter-pill active" data-rule="all" id="filterAll">Tous</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2 id="settingsTitle">⚙️ Réglages</h2>
+            <div class="close-btn" id="closeSettings">✕</div>
+          </div>
+        <div class="settings-body">
+            <div class="settings-nav">
+                <div class="nav-item active" data-section="sources"><span class="nav-icon">📁</span><span            
+            id="navSources">Sources</span></div>
+                <div class="nav-item" data-section="general"><span class="nav-icon">🧰</span><span            
+            id="navGeneral">Général</span></div>
+                <div class="nav-item" data-section="detect"><span class="nav-icon">🔍</span><span            
+            id="navDetect">Détection</span></div>
+                <div class="nav-item" data-section="viz"><span class="nav-icon">🎨</span><span
+            id="navViz">Visualisation</span>
+                  </div>
+                <div class="nav-item" data-section="stats"><span class="nav-icon">📈</span><span
+            id="navStats">Stats</span>
+                  </div>
+                <div class="nav-item" data-section="notify"><span class="nav-icon">🔔</span><span            
+            id="navNotify">Notifications</span></div>
+                <div class="nav-item" data-section="perf"><span class="nav-icon">⚡</span><span
+            id="navPerf">Performance</span>
+                  </div>
+                <div class="nav-item" data-section="customize"><span class="nav-icon">🎨</span><span            
+            id="navCustomize">Personnalisation</span></div>
+                <div class="nav-item" data-section="translate"><span class="nav-icon">🌍</span><span            
+            id="navTranslate">Traduction</span></div>
+              </div>
+
+            <div class="settings-content">
+                <!-- Sources Section -->
+                <div class="settings-section active" data-section="sources">
+                    <h3 class="section-title">Sources & Moniteurs</h3>
+                    <div class="setting-group">
+                        <div class="setting-row">
+                            <button class="btn" id="connectBtn">📁 Connecter un dossier (File System API)</button>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Fichier log</label>
+                            <div style="display:flex;gap:8px">
+                                <input type="text" class="setting-input" id="logPath" placeholder="/var/log/system.log"
+                  style="flex:1">
+                                <button class="btn" id="browseLogBtn">📂 Parcourir</button>
+                              </div>
+                          </div>
+                        <div class="setting-row">
+                            <div class="grid-inputs">
+                                <div>
+                                    <label class="setting-label">Intervalle (secondes)</label>
+                                    <input type="number" class="setting-input" id="refreshInterval" value="5" min="1"
+                    max="60">
+                                  </div>
+                                <div style="display:flex;align-items:flex-end">
+                                    <button class="btn" id="addMonitor" style="width:100%">➕ Ajouter moniteur</button>
+                                  </div>
+                              </div>
+                          </div>
+                        <div id="logMonitors"></div>
+                      </div>
+
+                    <!-- NEW TEST AREA -->
+                    <div class="setting-group">
+                        <h4 class="section-title" style="margin-top:0">Zone de test (Injecteur)</h4>
+                        <div class="setting-row">
+                            <textarea id="logInjectorInput" class="setting-input"                
+                style="height:120px;font-family:monospace;font-size:0.8rem"                
+                placeholder="Collez vos logs ici pour tester..."></textarea>
+                            <button class="btn" id="injectLogsBtn" style="margin-top:8px">▶ Injecter Logs &
+                Pause</button>
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- General Section -->
+                <div class="settings-section" data-section="general">
+                    <h3 class="section-title">Général</h3>
+                    <div class="setting-group">
+                        <div class="grid-inputs">
+                            <div>
+                                <label class="setting-label">Nom du fichier de config</label>
+                                <input type="text" class="setting-input" id="configFileName" value="config.json">
+                              </div>
+                            <div style="display:flex;align-items:flex-end;gap:8px">
+                                <button class="btn" id="exportConfigBtn">⬇️ Exporter config</button>
+                                <button class="btn" id="importConfigBtn">⬆️ Importer config</button>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- Detection Section -->
+                <div class="settings-section" data-section="detect">
+                    <h3 class="section-title">Détection & Règles</h3>
+                    <div class="setting-group">
+                        <h4>Profils de détection</h4>
+                        <div class="profile-selector" id="profileSelector">
+                            <div class="profile-tab active" data-profile="default">Défaut</div>
+                            <div class="profile-tab add" onclick="AcidLog.addDetectionProfile()">+ Nouveau profil</div>
+                          </div>
+                        <h4>Règles de détection</h4>
+                        <div id="rulesContainer"></div>
+                        <button class="btn" id="addRuleBtn">➕ Ajouter une règle</button>
+                      </div>
+                  </div>
+
+                <!-- Visualization Section -->
+                <div class="settings-section" data-section="viz">
+                    <h3 class="section-title">Visualisation</h3>
+
+                    <div class="setting-group">
+                        <h4>Fond du graphique</h4>
+                        <div class="setting-row">
+                            <div style="display:flex;gap:8px">
+                                <button class="btn" data-bg="gradient"                  
+                  onclick="AcidLog.setGraphBackground('gradient')">Gradient</button>
+                                <button class="btn" data-bg="flat"
+                  onclick="AcidLog.setGraphBackground('flat')">Plat</button>
+                                <button class="btn" data-bg="image"
+                  onclick="AcidLog.setGraphBackground('image')">Image</button>
+                                <button class="btn" id="uploadBgBtn">📥 Importer image</button>
+                              </div>
+                          </div>
+                      </div>
+
+                    <div class="setting-group">
+                        <h4>Courbes globales (mode simple)</h4>
+                        <div class="grid-inputs">
+                            <div>
+                                <label class="setting-label">Couleur ligne</label>
+                                <input type="color" id="graphLineColor" value="#00ff41">
+                              </div>
+                            <div>
+                                <label class="setting-label">Couleur remplissage</label>
+                                <input type="color" id="graphFillColor" value="#00ff41">
+                              </div>
+                            <div>
+                                <label class="setting-label">Transparence remplissage <span class="slider-value"        
+                                id="graphFillOpacityValue">30%</span></label>
+                                <input type="range" class="setting-slider" id="graphFillOpacity" min="0" max="100"
+                  step="5" value="30">
+                              </div>
+                          </div>
+                      </div>
+
+                    <div class="setting-group">
+                        <h4>Paramètres généraux</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Taille des icônes <span class="slider-value"                  
+                  id="iconSizeValue">40px</span></label>
+                            <input type="range" class="setting-slider" id="iconSize" min="20" max="80" step="5"
+                value="40">
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-checkbox">
+                                <input type="checkbox" id="curveOutOfBounds" checked>
+                                <span>Courbes sortent naturellement (pas d'adaptation)</span>
+                              </label>
+                          </div>
+                      </div>
+
+                    <div class="setting-group">
+                        <h4>Animation</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Vitesse d'animation <span class="slider-value"                
+                    id="animSpeedValue">1.0x</span></label>
+                            <input type="range" class="setting-slider" id="animSpeed" min="0.1" max="2" step="0.1"
+                value="1">
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Lissage courbes (σ) <span class="slider-value"                
+                    id="smoothingValue">5</span></label>
+                            <input type="range" class="setting-slider" id="smoothing" min="0" max="10" step="1"
+                value="5">
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Hauteur graphe <span class="slider-value"                  
+                  id="graphHeightValue">400px</span></label>
+                            <input type="range" class="setting-slider" id="graphHeight" min="220" max="640" step="40"
+                value="400">
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- Stats Section -->
+                <div class="settings-section" data-section="stats">
+                    <h3 class="section-title">Barre de statistiques</h3>
+                    <div class="setting-group">
+                        <div class="grid-inputs">
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="total"                  
+                  checked><span>Total</span></label>
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="critical"              
+                      checked><span>Critiques</span></label>
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="epm"                  
+                  checked><span>Evts/min</span></label>
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="monitors"              
+                      checked><span>Moniteurs</span></label>
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="peak"
+                  checked><span>Pic</span></label>
+                            <label class="setting-checkbox"><input type="checkbox" data-metric="risk"
+                  checked><span>Niveau de
+                                    risque</span></label>
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- Notifications Section -->
+                <div class="settings-section" data-section="notify">
+                    <h3 class="section-title">Notifications</h3>
+                    <div class="setting-group">
+                        <div class="setting-row">
+                            <label class="setting-checkbox"><input type="checkbox" id="desktopNotif"><span>Notifications
+                                    système</span></label>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-checkbox"><input type="checkbox" id="soundEnabled"><span>Activer les
+                                    sons</span></label>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Volume <span class="slider-value"
+                  id="volumeValue">50%</span></label>
+                            <input type="range" class="setting-slider" id="masterVolume" min="0" max="100" value="50">
+                          </div>
+                      </div>
+
+                    <div class="setting-group">
+                        <h4>Discord</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Webhook URL</label>
+                            <input type="text" class="setting-input" id="discordWebhook"                
+                placeholder="https://discord.com/api/webhooks/...">
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- Performance Section -->
+                <div class="settings-section" data-section="perf">
+                    <h3 class="section-title">Performance</h3>
+                    <div class="setting-group">
+                        <div class="grid-inputs">
+                            <div>
+                                <label class="setting-label">Max événements</label>
+                                <input type="number" class="setting-input" id="maxEvents" value="10000" min="100"
+                  max="50000">
+                              </div>
+                            <div>
+                                <label class="setting-label">Fréquence UI (ms)</label>
+                                <input type="number" class="setting-input" id="updateFreq" value="100" min="16"
+                  max="1000">
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                <!-- Customize Section -->
+                <div class="settings-section" data-section="customize">
+                    <h3 class="section-title">Personnalisation UI</h3>
+
+                    <!-- Icons Management -->
+                    <div class="setting-group">
+                        <h4>Icônes système</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Favicon</label>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div class="icon-picker" id="faviconPicker"
+                  onclick="AcidLog.openIconSelector('favicon')">🔥</div>
+                                <input type="text" class="setting-input" id="faviconInput" placeholder="Emoji ou texte"
+                  style="flex:1">
+                              </div>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Icône application</label>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <div class="icon-picker" id="appIconPicker"
+                  onclick="AcidLog.openIconSelector('appIcon')">📱</div>
+                                <input type="text" class="setting-input" id="appIconInput" placeholder="URL ou nom"
+                  style="flex:1">
+                              </div>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Texte du logo</label>
+                            <input type="text" class="setting-input" id="logoTextInput" value="AcidLog">
+                          </div>
+                      </div>
+
+                    <!-- Imported Assets -->
+                    <div class="setting-group">
+                        <h4>Assets importés</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Icônes <span class="slider-value"
+                  id="iconThumbSizeValue">40px</span></label>
+                            <input type="range" id="iconThumbSize" min="30" max="60" step="5" value="40">
+                            <div class="icon-gallery" id="iconsList"></div>
+                            <button class="btn" id="importIconsBtn">📥 Importer icônes</button>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Sons</label>
+                            <div id="soundsList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+                            <button class="btn" id="importSoundsBtn">📥 Importer sons</button>
+                          </div>
+                        <div class="setting-row">
+                            <label class="setting-label">Polices</label>
+                            <div class="font-gallery" id="fontsList"></div>
+                            <button class="btn" id="importFontsBtn">📥 Importer polices</button>
+                          </div>
+                      </div>
+
+                    <!-- UI Icons -->
+                    <div class="setting-group">
+                        <h4>Icônes de l'interface</h4>
+                        <div class="grid-inputs">
+                            <div>
+                                <label class="setting-label">Grouper</label>
+                                <div style="display:flex;gap:8px">
+                                    <div class="icon-picker" id="iconGroupPicker"
+                    onclick="AcidLog.openIconSelector('group')">🫧</div>
+                                    <input type="text" class="setting-input" id="iconGroup" value="🫧" style="flex:1"
+                    placeholder="Emoji">
+                                  </div>
+                              </div>
+                            <div>
+                                <label class="setting-label">Recherche</label>
+                                <div style="display:flex;gap:8px">
+                                    <div class="icon-picker" id="iconSearchPicker"
+                    onclick="AcidLog.openIconSelector('search')">🔍</div>
+                                    <input type="text" class="setting-input" id="iconSearch" value="🔍" style="flex:1"  
+                                      placeholder="Emoji">
+                                  </div>
+                              </div>
+                            <div>
+                                <label class="setting-label">Vue</label>
+                                <div style="display:flex;gap:8px">
+                                    <div class="icon-picker" id="iconViewPicker"
+                    onclick="AcidLog.openIconSelector('view')">📊</div>
+                                    <input type="text" class="setting-input" id="iconView" value="📊" style="flex:1"
+                    placeholder="Emoji">
+                                  </div>
+                              </div>
+                            <div>
+                                <label class="setting-label">Réglages</label>
+                                <div style="display:flex;gap:8px">
+                                    <div class="icon-picker" id="iconSettingsPicker"
+                    onclick="AcidLog.openIconSelector('settings')">⚙️
+                                      </div>
+                                    <input type="text" class="setting-input" id="iconSettings" value="⚙️" style="flex:1"
+                                        placeholder="Emoji">
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+
+                    <!-- Police -->
+                    <div class="setting-group">
+                        <h4>Police d'écriture</h4>
+                        <div class="setting-row">
+                            <label class="setting-label">Famille de police</label>
+                            <select class="setting-input" id="fontFamily">
+                                <option value="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
+                  Système</option>
+                                <option value="'Courier New',monospace">Monospace</option>
+                                <option value="Georgia,serif">Serif</option>
+                                <option value="Arial,sans-serif">Arial</option>
+                                <option value="'Comic Sans MS',cursive">Comic Sans</option>
+                              </select>
+                          </div>
+                      </div>
+
+                    <!-- Colors -->
+                    <div class="setting-group">
+                        <h4>Couleurs de l'interface</h4>
+                        <div class="setting-row">
+                            <div class="grid-inputs">
+                                <div>
+                                    <label class="setting-label">Arrière-plan principal</label>
+                                    <input type="color" id="colorBgPrimary" value="#0a0a0a">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Arrière-plan des panneaux</label>
+                                    <input type="color" id="colorBgSecondary" value="#0f1012">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Arrière-plan des éléments</label>
+                                    <input type="color" id="colorBgTertiary" value="#151719">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Arrière-plan des cartes</label>
+                                    <input type="color" id="colorBgCard" value="#1a1d20">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Texte principal</label>
+                                    <input type="color" id="colorTextPrimary" value="#e8f4f0">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Texte secondaire</label>
+                                    <input type="color" id="colorTextSecondary" value="#94a3a0">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Texte désactivé</label>
+                                    <input type="color" id="colorTextMuted" value="#687471">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Accent principal (vert acid)</label>
+                                    <input type="color" id="colorAccentAcid" value="#00ff41">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Accent cyan</label>
+                                    <input type="color" id="colorAccentCyan" value="#00ffdd">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Accent orange (avertissement)</label>
+                                    <input type="color" id="colorAccentOrange" value="#ff9500">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Accent rouge (critique)</label>
+                                    <input type="color" id="colorAccentRed" value="#ff3366">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Accent jaune (info)</label>
+                                    <input type="color" id="colorAccentYellow" value="#ffdd00">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Bordures</label>
+                                    <input type="color" id="colorBorder" value="#1e2326">
+                                  </div>
+                                <div>
+                                    <label class="setting-label">Bordures claires</label>
+                                    <input type="color" id="colorBorderLight" value="#2a2f33">
+                                  </div>
+                              </div>
+                          </div>
+                        <button class="btn" id="resetColorsBtn">🔄 Réinitialiser les couleurs</button>
+                      </div>
+                  </div>
+
+                <!-- Translation Section -->
+                <div class="settings-section" data-section="translate">
+                    <h3 class="section-title">Traduction de l'interface</h3>
+                    <div class="setting-group">
+                        <div class="lang-editor" id="langEditor">
+                            <div class="lang-tab active" data-lang="fr">FR</div>
+                            <div class="lang-tab" data-lang="en">EN</div>
+                            <div class="lang-tab add" onclick="AcidLog.addLanguage()">+ Ajouter</div>
+                          </div>
+                        <div class="translation-grid" id="translationContainer"></div>
+                        <button class="btn" id="resetTranslationsBtn">🔄 Réinitialiser</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+    <!-- Live/Pause -->
+    <div class="live-indicator" id="liveIndicator">
+        <div class="live-dot"></div><span id="liveText">LIVE</span>
+      </div>
+
+    <!-- Toaster & Tooltip -->
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="event-tooltip" id="eventTooltip">
+        <div class="tooltip-title" id="tooltipTitle"></div>
+        <div class="tooltip-time" id="tooltipTime"></div>
+        <div class="tooltip-desc" id="tooltipDesc"></div>
+      </div>
+
+    <!-- Cluster Popup -->
+    <div class="cluster-popup" id="clusterPopup">
+        <div class="cluster-popup-header">
+            <div class="cluster-popup-title" id="clusterPopupTitle"></div>
+            <button onclick="AcidLog.hideClusterPopup()"        
+        style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">✕</button>
+          </div>
+        <div class="cluster-popup-content" id="clusterPopupContent"></div>
+        <div class="cluster-popup-tabs" id="clusterPopupTabs"></div>
+      </div>
+
+    <!-- Icon Selector Modal -->
+    <div class="icon-selector-modal" id="iconSelectorModal">
+        <h3>Sélectionner une icône</h3>
+        <div class="icon-selector-grid" id="iconSelectorGrid"></div>
+        <button class="btn" onclick="AcidLog.closeIconSelector()">Annuler</button>
+      </div>
+
+    <!-- Badge zoom -->
+    <div id="zoomBadge" class="zoom-badge hide">—</div>
+
+   
+  <script>
+    const AcidLog = {
+      state: {
+        events: [],
+        monitors: [],
+        rootHandle: null,
+        isPaused: false,
+        pauseLock: false,
+        viewMode: 'timeline',
+        refNow: null,
+        timeWindow: 5 * 60 * 1000,
+        timeRange: { start: 0, end: 1 },
+        selectedRule: 'all',
+        groupBubbles: false,
+        transparentIcons: false,
+        iconSize: 40,
+        curveMode: 'single',
+        curveOutOfBounds: true,
+        searchResults: [],
+        searchIndex: -1,
+        currentLang: 'fr',
+        scale: { auto: true, manualMax: 50 },
+        splitWidth: 400,
+        paths: { root: '', logs: [], icons: [], sounds: [], fonts: [] },
+        graphLineColor: '#00ff41',
+        graphFillColor: '#00ff41',
+        graphFillOpacity: 0.3,
+        graphBackground: 'gradient',
+        graphBgImage: null,
+        settings: {
+          animSpeed: 1,
+          smoothing: 5,
+          graphHeight: 400,
+          soundEnabled: false,
+          masterVolume: 50,
+          maxEvents: 10000,
+          updateFreq: 16,
+          desktopNotif: false,
+          splitPosition: false,
+          saveInterval: 5,
+          configFileName: 'config.json',
+          statsVisible: { total: true, critical: true, epm: true, monitors: true, peak: true, risk: true },
+          riskWeight: 1.0,
+          discordWebhook: '',
+          iconSize: 40,
+          iconThumbSize: 40,
+          uiIcons: { group: '🫧', search: '🔍', view: '📊', settings: '⚙️' },
+          faviconIcon: '🔥',
+          appIcon: '',
+          logoText: 'AcidLog',
+          fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif",
+          customFonts: []
+        },
+        detectionProfiles: {
+          default: {
+            name: 'Défaut',
+            rules: [
+              { id: 'r1', name: 'Critical', keywords: 'critical,fatal,breach,exploit,rce,cve,hack', type: 'critical', priority: 5, sound: 'critical', icon: '🚨', iconSize: 32, color: '#ff3366', curveColor: '#ff3366', fillColor: '#ff336630', fillOpacity: 0.3, transparent: false, notify: { discord: true, desktop: true } },
+              { id: 'r2', name: 'Error', keywords: 'error,failed,exception,denied,blocked', type: 'high', priority: 4, sound: 'warning', icon: '⚠️', iconSize: 32, color: '#ff9500', curveColor: '#ff9500', fillColor: '#ff950030', fillOpacity: 0.3, transparent: false, notify: { desktop: true } },
+              { id: 'r3', name: 'Warning', keywords: 'warn,warning,timeout,anomaly,ssrf,csrf,tor,botnet,pipi', type: 'warning', priority: 3, sound: 'warning', icon: '⚡', iconSize: 32, color: '#ffdd00', curveColor: '#ffdd00', fillColor: '#ffdd0030', fillOpacity: 0.3, transparent: false, notify: { desktop: true } },
+              { id: 'r4', name: 'Activity', keywords: 'info,started,login,activity,observed,detected,connected', type: 'info', priority: 2, sound: 'info', icon: 'ℹ️', iconSize: 32, color: '#00ffdd', curveColor: '#00ffdd', fillColor: '#00ffdd30', fillOpacity: 0.3, transparent: false, notify: {} }
+            ]
+          }
+        },
+        currentProfile: 'default',
+        detectionRules: [],
+        uiColors: {
+          bgPrimary: '#0a0a0a', bgSecondary: '#0f1012', bgTertiary: '#151719', bgCard: '#1a1d20',
+          textPrimary: '#e8f4f0', textSecondary: '#94a3a0', textMuted: '#687471',
+          accentAcid: '#00ff41', accentCyan: '#00ffdd', accentOrange: '#ff9500', accentRed: '#ff3366', accentYellow: '#ffdd00',
+          border: '#1e2326', borderLight: '#2a2f33'
+        },
+        translations: {
+          fr: {
+            groupBtnText: 'Grouper bulles', viewBtnText: 'Vue verticale', settingsBtnText: 'Réglages', liveText: 'LIVE', statLabelTotal: 'Total', statLabelCritical: 'Critiques', statLabelEPM: 'Evts/min', statLabelMonitors: 'Moniteurs', statLabelPeak: 'Pic', statLabelRisk: 'Risque', filterAll: 'Tous', searchPlaceholder: 'Rechercher...'
+          },
+          en: {
+            groupBtnText: 'Group bubbles', viewBtnText: 'Vertical view', settingsBtnText: 'Settings', liveText: 'LIVE', statLabelTotal: 'Total', statLabelCritical: 'Critical', statLabelEPM: 'Evts/min', statLabelMonitors: 'Moniteurs', statLabelPeak: 'Peak', statLabelRisk: 'Risk', filterAll: 'All', searchPlaceholder: 'Search...'
+          }
+        }
+      },
+
+      assets: { icons: [], sounds: [], fonts: [] },
+      audioContext: null, audioBuffers: new Map(),
+      mainCtx: null, splitCtx: null, sliderCtx: null,
+      animationFrame: null, lastRender: 0,
+      curvesCache: {}, curveHistory: new Map(),
+      dom: { eventEls: new Map() },
+      saveTimer: null, currentClusterData: null, currentIconTarget: null, editingLang: 'fr',
+
+      async init() {
+        this.state.detectionRules = this.state.detectionProfiles.default.rules;
+        this.initCanvas();
+        this.initUI();
+        this.loadSettings();
+        this.updateRuleFilters();
+        this.renderRulesEditor();
+        this.renderDetectionProfiles();
+        this.applyStatsVisibility();
+        this.applyUIColors();
+        this.applyTranslations();
+        this.applyUIIcons();
+        this.applyFontFamily();
+        this.updateYAxisGraduation();
+        this.startRenderLoop();
+        this.startAutoSave();
+        this.showToast('AcidLog prêt 🔥');
+
+        const h = document.querySelector('.header').getBoundingClientRect().height || 60;
+        document.getElementById('liveIndicator').style.top = Math.round(h + 6) + 'px';
+      },
+
+      initCanvas() {
+        this.mainCtx = document.getElementById('mainGraph').getContext('2d');
+        this.splitCtx = document.getElementById('splitGraph')?.getContext('2d');
+        this.sliderCtx = document.getElementById('sliderHistogram').getContext('2d');
+        this.resizeCanvas();
+        window.addEventListener('resize', () => { this.resizeCanvas(); this.render(true); });
+      },
+
+      resizeCanvas() {
+        const scale = window.devicePixelRatio || 1;
+        const set = (ctx) => {
+          if (!ctx) return;
+          const c = ctx.canvas;
+          const r = c.parentElement?.getBoundingClientRect();
+          if (!r) return;
+          c.width = r.width * scale;
+          c.height = r.height * scale;
+          c.style.width = r.width + 'px';
+          c.style.height = r.height + 'px';
+          ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        };
+        document.querySelector('.graph-area').style.height = this.state.settings.graphHeight + 'px';
+        if (this.splitCtx) document.querySelector('#splitContainer .graph-area').style.height = this.state.settings.graphHeight + 'px';
+        set(this.mainCtx); set(this.splitCtx); set(this.sliderCtx);
+      },
+
+      initUI() {
+        document.getElementById('viewBtn').addEventListener('click', () => this.toggleView());
+        document.getElementById('groupBtn').addEventListener('click', () => {
+          this.state.groupBubbles = !this.state.groupBubbles;
+          document.getElementById('groupBtnText').textContent = this.state.groupBubbles ? 'Dégrouper' : this.t('groupBtnText');
+          this.render(true);
+        });
+        document.getElementById('langSelector').addEventListener('click', () => {
+          const langs = Object.keys(this.state.translations);
+          this.state.currentLang = langs[(langs.indexOf(this.state.currentLang) + 1) % langs.length];
+          document.getElementById('langCurrent').textContent = '🌍 ' + this.state.currentLang.toUpperCase();
+          this.applyTranslations(); this.saveSettings();
+        });
+        document.querySelectorAll('[data-curvemode]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.state.curveMode = btn.dataset.curvemode;
+            document.querySelectorAll('[data-curvemode]').forEach(b => b.classList.toggle('active', b === btn));
+            this.curvesCache = {}; this.render(true); this.saveSettings();
+          });
+        });
+        const searchInput = document.getElementById('searchInput');
+        const searchControls = document.getElementById('searchControls');
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.trim();
+          if (query) {
+            this.searchEvents(query);
+            if (this.state.searchResults.length > 0) {
+              searchControls.style.display = 'flex';
+              this.focusSearchResult(0);
+            } else {
+              searchControls.style.display = 'none';
+            }
+          } else {
+            searchControls.style.display = 'none';
+            this.state.searchResults = [];
+            this.state.searchIndex = -1;
+          }
+        });
+        document.getElementById('searchPrev').addEventListener('click', () => { if (this.state.searchIndex > 0) this.focusSearchResult(this.state.searchIndex - 1); });
+        document.getElementById('searchNext').addEventListener('click', () => { if (this.state.searchIndex < this.state.searchResults.length - 1) this.focusSearchResult(this.state.searchIndex + 1); });
+        document.getElementById('liveIndicator').addEventListener('click', () => this.togglePause());
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && !e.target.matches('input, textarea')) { e.preventDefault(); this.togglePause(); }
+        });
+        document.getElementById('settingsBtn').addEventListener('click', () => { document.getElementById('settingsPanel').classList.add('open'); document.getElementById('overlay').classList.add('show'); });
+        document.getElementById('closeSettings').addEventListener('click', () => { document.getElementById('settingsPanel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); });
+        document.getElementById('overlay').addEventListener('click', () => {
+          document.getElementById('settingsPanel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); document.getElementById('iconSelectorModal').classList.remove('show');
+        });
+        document.querySelectorAll('.nav-item').forEach(nav => {
+          nav.addEventListener('click', () => {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            nav.classList.add('active');
+            const section = nav.dataset.section;
+            document.querySelectorAll('.settings-section').forEach(s => s.classList.toggle('active', s.dataset.section === section));
+          });
+        });
+        document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => this.setTimeRange(b.dataset.range)));
+        document.getElementById('uploadBgBtn')?.addEventListener('click', () => this.uploadBackgroundImage());
+        this.initRangeSlider();
+        this.initSettingsInputs();
+        this.initScaleWidget();
+        this.initSplitDivider();
+        this.initTimelineZoom();
+        this.initCustomizeUI();
+        this.initTranslationsUI();
+      },
+
+      initRangeSlider() {
+        const left = document.getElementById('leftThumb');
+        const right = document.getElementById('rightThumb');
+        const selection = document.getElementById('sliderSelection');
+        const slider = document.getElementById('rangeSlider');
+        let dragging = null, dragSel = null, startX = 0, startRange = null;
+        const rect = () => slider.getBoundingClientRect();
+        const startDrag = (e, thumb) => { e.preventDefault(); e.stopPropagation(); dragging = thumb; document.body.style.cursor = 'grabbing'; };
+        const startDragSel = (e) => { e.preventDefault(); e.stopPropagation(); dragSel = true; selection.classList.add('dragging'); startX = (e.touches ? e.touches[0].clientX : e.clientX); startRange = { ...this.state.timeRange }; };
+        const handleSliderClick = (e) => {
+          if (!dragging && !dragSel && !e.target.classList.contains('slider-thumb')) {
+            const r = rect();
+            const pct = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)) / 100;
+            const mid = (this.state.timeRange.start + this.state.timeRange.end) / 2;
+            if (pct < mid) { this.state.timeRange.start = pct; left.style.left = (pct * 100) + '%'; } else { this.state.timeRange.end = pct; right.style.left = (pct * 100) + '%'; }
+            this.updateSliderSelection(); this.render(true);
+          }
+        };
+        const move = (e) => {
+          const x = (e.touches ? e.touches[0].clientX : e.clientX);
+          const r = rect();
+          const pct = Math.max(0, Math.min(100, ((x - r.left) / r.width) * 100));
+          if (dragging === left) {
+            const rp = parseFloat(right.style.left);
+            if (pct < rp - 2) { left.style.left = pct + '%'; this.state.timeRange.start = pct / 100; this.updateSliderSelection(); }
+          } else if (dragging === right) {
+            const lp = parseFloat(left.style.left);
+            if (pct > lp + 2) { right.style.left = pct + '%'; this.state.timeRange.end = pct / 100; this.updateSliderSelection(); }
+          } else if (dragSel) {
+            const delta = (x - startX) / r.width;
+            let ns = startRange.start + delta, ne = startRange.end + delta;
+            const span = ne - ns;
+            if (ns < 0) { ns = 0; ne = span; } if (ne > 1) { ne = 1; ns = 1 - span; }
+            this.state.timeRange.start = Math.max(0, ns); this.state.timeRange.end = Math.min(1, ne);
+            left.style.left = (this.state.timeRange.start * 100) + '%'; right.style.left = (this.state.timeRange.end * 100) + '%';
+            this.updateSliderSelection();
+          }
+        };
+        const stop = () => { dragging = null; dragSel = null; selection.classList.remove('dragging'); document.body.style.cursor = ''; };
+        left.addEventListener('mousedown', (e) => startDrag(e, left));
+        right.addEventListener('mousedown', (e) => startDrag(e, right));
+        selection.addEventListener('mousedown', startDragSel);
+        slider.addEventListener('click', handleSliderClick);
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', stop);
+        this.updateSliderSelection();
+      },
+
+      updateSliderSelection() {
+        const left = document.getElementById('leftThumb');
+        const right = document.getElementById('rightThumb');
+        const sel = document.getElementById('sliderSelection');
+        const l = parseFloat(left.style.left) || this.state.timeRange.start * 100;
+        const r = parseFloat(right.style.left) || this.state.timeRange.end * 100;
+        sel.style.left = l + '%';
+        sel.style.width = (r - l) + '%';
+        this.state.timeRange.start = l / 100;
+        this.state.timeRange.end = r / 100;
+      },
+
+      initScaleWidget() {
+        const fab = document.getElementById('scaleFab'), panel = document.getElementById('scalePanel'), auto = document.getElementById('scaleAuto'), slider = document.getElementById('scaleSlider'), dot = document.getElementById('scaleDot');
+        fab?.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('open'); });
+        document.addEventListener('click', () => panel?.classList.remove('open'));
+        auto?.addEventListener('change', () => { this.state.scale.auto = auto.checked; dot.classList.toggle('off', !this.state.scale.auto); this.curvesCache = {}; this.updateYAxisGraduation(); this.saveSettings(); });
+        slider?.addEventListener('input', (e) => { this.state.scale.manualMax = Math.max(1, parseInt(e.target.value)); if (!this.state.scale.auto) { this.curvesCache = {}; this.updateYAxisGraduation(); } this.saveSettings(); });
+      },
+
+      initTimelineZoom() {
+        const addWheelZoom = (element) => {
+          if (!element) return;
+          element.addEventListener('wheel', (e) => {
+            if (this.state.viewMode === 'vertical') return;
+            e.preventDefault();
+            const rect = element.getBoundingClientRect();
+            const relX = (e.clientX - rect.left) / rect.width;
+            const factor = e.deltaY > 0 ? 1.1 : 0.9;
+            this.zoomTimeline(factor, relX);
+          }, { passive: false });
+        };
+        addWheelZoom(document.getElementById('mainGraph'));
+        addWheelZoom(document.getElementById('splitGraph'));
+        addWheelZoom(document.getElementById('rangeSlider'));
+      },
+
+      zoomTimeline(factor, anchor = 0.5) {
+        const oldSpan = this.state.timeRange.end - this.state.timeRange.start;
+        const newSpan = Math.max(0.03, Math.min(1, oldSpan * factor));
+        const leftDist = anchor * oldSpan;
+        const rightDist = (1 - anchor) * oldSpan;
+        const newLeftDist = leftDist * (newSpan / oldSpan);
+        const newRightDist = rightDist * (newSpan / oldSpan);
+        const anchorPoint = this.state.timeRange.start + leftDist;
+        let ns = anchorPoint - newLeftDist;
+        let ne = anchorPoint + newRightDist;
+        if (ns < 0) { ne -= ns; ns = 0; }
+        if (ne > 1) { ns -= (ne - 1); ne = 1; }
+        this.state.timeRange.start = Math.max(0, ns);
+        this.state.timeRange.end = Math.min(1, ne);
+        document.getElementById('leftThumb').style.left = (this.state.timeRange.start * 100) + '%';
+        document.getElementById('rightThumb').style.left = (this.state.timeRange.end * 100) + '%';
+        this.updateSliderSelection();
+        this.updateZoomBadge();
+        this.render(true);
+      },
+
+      renderDetectionProfiles() {
+        const container = document.getElementById('profileSelector');
+        if (!container) return;
+        container.innerHTML = '';
+        Object.entries(this.state.detectionProfiles).forEach(([id, profile]) => {
+          const tab = document.createElement('div');
+          tab.className = 'profile-tab';
+          if (id === this.state.currentProfile) tab.classList.add('active');
+          tab.dataset.profile = id;
+          tab.textContent = profile.name;
+          tab.addEventListener('click', () => this.switchDetectionProfile(id));
+          container.appendChild(tab);
+        });
+        const addBtn = document.createElement('div');
+        addBtn.className = 'profile-tab add';
+        addBtn.textContent = '+ Nouveau profil';
+        addBtn.onclick = () => this.addDetectionProfile();
+        container.appendChild(addBtn);
+      },
+
+      switchDetectionProfile(profileId) {
+        if (!this.state.detectionProfiles[profileId]) return;
+        this.state.currentProfile = profileId;
+        this.state.detectionRules = [...this.state.detectionProfiles[profileId].rules];
+        this.renderDetectionProfiles();
+        this.renderRulesEditor();
+        this.updateRuleFilters();
+        this.saveSettings();
+      },
+
+      addDetectionProfile() {
+        const name = prompt('Nom du profil:');
+        if (!name) return;
+        const id = 'profile_' + Date.now();
+        this.state.detectionProfiles[id] = { name, rules: [...this.state.detectionRules] };
+        this.switchDetectionProfile(id);
+      },
+
+      updateYAxisGraduation() {
+        const max = this.state.scale.auto ? 100 : this.state.scale.manualMax;
+        const ticks = [100, 75, 50, 25, 0];
+        ['yAxis', 'yAxisSplit'].forEach(id => {
+          const axis = document.getElementById(id);
+          if (!axis) return;
+          axis.innerHTML = '';
+          ticks.forEach(pct => {
+            const tick = document.createElement('div');
+            tick.className = 'y-tick';
+            tick.textContent = Math.round((pct / 100) * max);
+            axis.appendChild(tick);
+          });
+        });
+      },
+
+      setGraphBackground(type) {
+        this.state.graphBackground = type;
+        const layers = document.querySelectorAll('.events-layer');
+        layers.forEach(layer => {
+          layer.classList.remove('gradient-bg', 'flat-bg', 'image-bg');
+          if (type === 'gradient') { layer.classList.add('gradient-bg'); layer.style.backgroundImage = ''; }
+          else if (type === 'flat') { layer.classList.add('flat-bg'); layer.style.backgroundImage = ''; }
+          else if (type === 'image' && this.state.graphBgImage) { layer.classList.add('image-bg'); layer.style.backgroundImage = `url(${this.state.graphBgImage})`; }
+        });
+        document.querySelectorAll('[data-bg]').forEach(btn => btn.classList.toggle('active', btn.dataset.bg === type));
+        this.saveSettings();
+      },
+
+      async uploadBackgroundImage() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async () => {
+          const file = input.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              this.state.graphBgImage = e.target.result;
+              this.setGraphBackground('image');
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      },
+
+      initSettingsInputs() {
+        const $ = id => document.getElementById(id);
+        $('configFileName').addEventListener('change', (e) => { this.state.settings.configFileName = e.target.value.trim() || 'config.json'; this.saveSettings(); });
+        $('exportConfigBtn').addEventListener('click', () => this.exportConfig());
+        $('importConfigBtn').addEventListener('click', () => this.importConfig());
+        $('graphLineColor').addEventListener('input', (e) => { this.state.graphLineColor = e.target.value; document.documentElement.style.setProperty('--graph-line', e.target.value); this.saveSettings(); });
+        $('graphFillColor').addEventListener('input', (e) => { this.state.graphFillColor = e.target.value; this.updateGraphFillColor(); this.saveSettings(); });
+        $('graphFillOpacity').addEventListener('input', (e) => { this.state.graphFillOpacity = parseInt(e.target.value) / 100; $('graphFillOpacityValue').textContent = e.target.value + '%'; this.updateGraphFillColor(); this.renderRulesEditor(); this.saveSettings(); });
+        $('animSpeed').addEventListener('input', (e) => { this.state.settings.animSpeed = parseFloat(e.target.value); $('animSpeedValue').textContent = e.target.value + 'x'; this.saveSettings(); });
+        $('smoothing').addEventListener('input', (e) => { this.state.settings.smoothing = parseInt(e.target.value); $('smoothingValue').textContent = e.target.value; this.curvesCache = {}; this.saveSettings(); });
+        $('graphHeight').addEventListener('input', (e) => { this.state.settings.graphHeight = parseInt(e.target.value); $('graphHeightValue').textContent = e.target.value + 'px'; this.resizeCanvas(); this.saveSettings(); });
+        $('iconSize').addEventListener('input', (e) => { this.state.settings.iconSize = parseInt(e.target.value); $('iconSizeValue').textContent = e.target.value + 'px'; document.documentElement.style.setProperty('--bubble-icon-size', e.target.value + 'px'); this.saveSettings(); });
+        $('curveOutOfBounds').addEventListener('change', (e) => { this.state.curveOutOfBounds = e.target.checked; this.curvesCache = {}; this.saveSettings(); });
+        $('masterVolume').addEventListener('input', (e) => { this.state.settings.masterVolume = parseInt(e.target.value); $('volumeValue').textContent = e.target.value + '%'; this.saveSettings(); });
+        $('soundEnabled').addEventListener('change', (e) => { this.state.settings.soundEnabled = e.target.checked; if (e.target.checked) this.initAudio(); this.saveSettings(); });
+        $('desktopNotif').addEventListener('change', async (e) => {
+          this.state.settings.desktopNotif = e.target.checked;
+          if (e.target.checked && 'Notification' in window) { const res = await Notification.requestPermission(); if (res !== 'granted') { this.showToast('Notifications non autorisées', 'error'); e.target.checked = false; this.state.settings.desktopNotif = false; } }
+          this.saveSettings();
+        });
+        $('discordWebhook').addEventListener('change', (e) => { this.state.settings.discordWebhook = e.target.value.trim(); this.saveSettings(); });
+        $('maxEvents').addEventListener('change', (e) => { this.state.settings.maxEvents = parseInt(e.target.value); this.saveSettings(); });
+        $('updateFreq').addEventListener('change', (e) => { this.state.settings.updateFreq = parseInt(e.target.value); this.saveSettings(); });
+        $('addMonitor').addEventListener('click', () => this.addLogMonitor());
+        $('connectBtn').addEventListener('click', () => this.connectFolder());
+        $('browseLogBtn').addEventListener('click', () => this.browseLogFile());
+        $('addRuleBtn').addEventListener('click', () => this.addRuleRow());
+        document.querySelectorAll('[data-metric]').forEach(chk => { chk.addEventListener('change', () => { this.state.settings.statsVisible[chk.dataset.metric] = chk.checked; this.applyStatsVisibility(); this.saveSettings(); }); });
+        $('importIconsBtn').addEventListener('click', () => this.pickAndImportIcons());
+        $('importSoundsBtn').addEventListener('click', () => this.pickAndImportSounds());
+        $('importFontsBtn').addEventListener('click', () => this.pickAndImportFonts());
+        $('iconThumbSize').addEventListener('input', (e) => { this.state.settings.iconThumbSize = parseInt(e.target.value); $('iconThumbSizeValue').textContent = e.target.value + 'px'; this.updateIconGallerySize(); this.saveSettings(); });
+
+        $('injectLogsBtn').addEventListener('click', () => {
+          const text = $('logInjectorInput').value;
+          if (!text.trim()) { this.showToast('Veuillez coller des logs.', 'error'); return; }
+          const lines = text.split('\n').filter(l => l.trim());
+          let count = 0;
+
+          // Force pause & unlock pause state to allow jump
+          this.state.isPaused = true;
+          this.state.pauseLock = false; // Allow override
+          document.getElementById('liveText').textContent = 'PAUSE (Inject)';
+
+          // Clear events if needed or append? Append is safer.
+          // Process logs
+          let firstTs = null;
+          lines.forEach(line => {
+            // FIX: dryRun passed as FALSE to add events
+            const ev = this.parseLogLine(line, 'manual-injection', false);
+            if (ev) {
+              if (!firstTs && ev.timestamp) firstTs = ev.timestamp.getTime();
+              count++;
+            }
+          });
+
+          if (count > 0 && firstTs) {
+            // Jump to the time of the first injected log
+            this.state.refNow = firstTs + (this.state.timeWindow / 2); // Center slightly
+            this.showToast(`${count} logs injectés. Focus temporel ajusté.`);
+            this.render(true);
+          } else {
+            this.showToast('Aucun log valide détecté ou pas de règle correspondante.', 'error');
+          }
+        });
+      },
+
+      initCustomizeUI() {
+        const colors = [{ id: 'colorBgPrimary', prop: '--bg-primary', key: 'bgPrimary' }, { id: 'colorBgSecondary', prop: '--bg-secondary', key: 'bgSecondary' }, { id: 'colorBgTertiary', prop: '--bg-tertiary', key: 'bgTertiary' }, { id: 'colorBgCard', prop: '--bg-card', key: 'bgCard' }, { id: 'colorTextPrimary', prop: '--text-primary', key: 'textPrimary' }, { id: 'colorTextSecondary', prop: '--text-secondary', key: 'textSecondary' }, { id: 'colorTextMuted', prop: '--text-muted', key: 'textMuted' }, { id: 'colorAccentAcid', prop: '--accent-acid', key: 'accentAcid' }, { id: 'colorAccentCyan', prop: '--accent-cyan', key: 'accentCyan' }, { id: 'colorAccentOrange', prop: '--accent-orange', key: 'accentOrange' }, { id: 'colorAccentRed', prop: '--accent-red', key: 'accentRed' }, { id: 'colorAccentYellow', prop: '--accent-yellow', key: 'accentYellow' }, { id: 'colorBorder', prop: '--border', key: 'border' }, { id: 'colorBorderLight', prop: '--border-light', key: 'borderLight' }];
+        colors.forEach(c => { const el = document.getElementById(c.id); if (el) { el.addEventListener('input', (e) => { this.state.uiColors[c.key] = e.target.value; document.documentElement.style.setProperty(c.prop, e.target.value); this.saveSettings(); }); } });
+        document.getElementById('faviconInput').addEventListener('input', (e) => { const icon = e.target.value || '🔥'; this.state.settings.faviconIcon = icon; this.updateFavicon(icon); this.updateIconPicker('favicon', icon); this.saveSettings(); });
+        document.getElementById('appIconInput').addEventListener('input', (e) => { this.state.settings.appIcon = e.target.value; this.updateAppIcon(); this.updateIconPicker('appIcon', e.target.value); this.saveSettings(); });
+        document.getElementById('logoTextInput').addEventListener('input', (e) => { document.getElementById('logoText').textContent = e.target.value; this.state.settings.logoText = e.target.value; this.saveSettings(); });
+        ['group', 'search', 'view', 'settings'].forEach(key => { const input = document.getElementById('icon' + key.charAt(0).toUpperCase() + key.slice(1)); if (input) { input.addEventListener('input', (e) => { this.state.settings.uiIcons[key] = e.target.value; this.applyUIIcons(); this.updateIconPicker(key, e.target.value); this.saveSettings(); }); } });
+        document.getElementById('fontFamily').addEventListener('change', (e) => { this.state.settings.fontFamily = e.target.value; this.applyFontFamily(); this.saveSettings(); });
+        document.getElementById('resetColorsBtn').addEventListener('click', () => { this.state.uiColors = { bgPrimary: '#0a0a0a', bgSecondary: '#0f1012', bgTertiary: '#151719', bgCard: '#1a1d20', textPrimary: '#e8f4f0', textSecondary: '#94a3a0', textMuted: '#687471', accentAcid: '#00ff41', accentCyan: '#00ffdd', accentOrange: '#ff9500', accentRed: '#ff3366', accentYellow: '#ffdd00', border: '#1e2326', borderLight: '#2a2f33' }; this.applyUIColors(); this.saveSettings(); location.reload(); });
+      },
+
+      initTranslationsUI() {
+        this.renderTranslationEditor();
+        document.getElementById('resetTranslationsBtn').addEventListener('click', () => { location.reload(); });
+      },
+
+      renderTranslationEditor() {
+        const container = document.getElementById('translationContainer');
+        const enRef = this.state.translations.en || this.state.translations.fr;
+        const keys = Object.keys(this.state.translations.fr);
+        container.innerHTML = '';
+        keys.forEach(key => {
+          const item = document.createElement('div');
+          item.className = 'translation-item';
+          const value = this.state.translations[this.editingLang]?.[key] || '';
+          const ref = enRef[key] || key;
+          item.innerHTML = `<div class="translation-ref">${ref.substring(0, 10)}</div><div class="translation-key">${key}</div><input type="text" class="translation-input" data-trans="${key}" value="${value}">`;
+          container.appendChild(item);
+        });
+        container.querySelectorAll('[data-trans]').forEach(input => { input.addEventListener('input', (e) => { const key = e.target.dataset.trans; if (!this.state.translations[this.editingLang]) { this.state.translations[this.editingLang] = {}; } this.state.translations[this.editingLang][key] = e.target.value; this.applyTranslations(); this.saveSettings(); }); });
+        const langEditor = document.getElementById('langEditor');
+        langEditor.innerHTML = '';
+        Object.keys(this.state.translations).forEach(lang => {
+          const tab = document.createElement('div');
+          tab.className = 'lang-tab';
+          if (lang === this.editingLang) tab.classList.add('active');
+          tab.textContent = lang.toUpperCase();
+          tab.dataset.lang = lang;
+          tab.addEventListener('click', () => { this.editingLang = lang; document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); this.renderTranslationEditor(); });
+          langEditor.appendChild(tab);
+        });
+        const addBtn = document.createElement('div');
+        addBtn.className = 'lang-tab add';
+        addBtn.textContent = '+ Ajouter';
+        addBtn.onclick = () => this.addLanguage();
+        langEditor.appendChild(addBtn);
+      },
+
+      addLanguage() {
+        const code = prompt('Code de langue (ex: es, de, it)');
+        if (code && code.length === 2) { this.state.translations[code] = {}; this.editingLang = code; this.renderTranslationEditor(); this.saveSettings(); }
+      },
+
+      initSplitDivider() {
+        const divider = document.getElementById('splitDivider');
+        const container = document.getElementById('splitContainer');
+        const right = document.getElementById('splitCards');
+        let dragging = false;
+        divider?.addEventListener('mousedown', (e) => { dragging = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
+        document.addEventListener('mousemove', (e) => {
+          if (!dragging) return;
+          const rect = container.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const width = Math.max(240, Math.min(rect.width - 240, rect.width - x));
+          this.state.splitWidth = width;
+          right.style.width = width + 'px';
+          this.resizeCanvas();
+          this.render(true);
+        });
+        document.addEventListener('mouseup', () => { dragging = false; document.body.style.cursor = ''; });
+      },
+
+      renderRulesEditor() {
+        const wrap = document.getElementById('rulesContainer');
+        wrap.innerHTML = '';
+        this.state.detectionRules.forEach((rule, idx) => wrap.appendChild(this.buildRuleRow(rule, idx)));
+        this.updateRuleFilters();
+      },
+
+      addRuleRow() {
+        const r = { id: 'r' + Date.now(), name: 'New Rule', keywords: '', type: 'info', priority: 1, sound: 'info', icon: 'ℹ️', iconSize: 32, color: '#00ffdd', curveColor: '#00ffdd', fillColor: '#00ffdd30', fillOpacity: 0.3, transparent: false, notify: { desktop: true } };
+        this.state.detectionRules.push(r);
+        this.renderRulesEditor();
+        this.saveSettings();
+      },
+
+      buildRuleRow(rule, idx) {
+        const row = document.createElement('div');
+        row.className = 'rule-item';
+        const header = document.createElement('div');
+        header.className = 'rule-header';
+        const preview = document.createElement('div');
+        preview.className = 'rule-preview';
+        const bubble = document.createElement('div');
+        bubble.className = 'rule-bubble-preview';
+        const opacity = rule.fillOpacity || 0.3;
+        bubble.style.background = `linear-gradient(135deg, ${rule.color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}, ${this.adjustColor(rule.color, 0.8)}${Math.round(opacity * 255).toString(16).padStart(2, '0')})`;
+        if (rule.icon && this.assets.icons.find(i => i.name === rule.icon)) { bubble.innerHTML = `<img src="${this.assets.icons.find(i => i.name === rule.icon).url}" style="width:${rule.iconSize || 30}px;height:${rule.iconSize || 30}px">`; } else { bubble.innerHTML = rule.icon || '📝'; }
+        preview.appendChild(bubble);
+        const info = document.createElement('div');
+        info.className = 'rule-info';
+        info.innerHTML = `<div style="font-weight:600">${rule.name || 'Sans nom'}</div><div style="font-size:.85rem;color:var(--text-secondary)">Priorité: ${rule.priority}</div>`;
+        preview.appendChild(info);
+        if (rule.sound) { const playBtn = document.createElement('button'); playBtn.className = 'btn icon-only'; playBtn.innerHTML = '▶'; playBtn.addEventListener('click', () => this.playSound(rule.sound)); preview.appendChild(playBtn); }
+        header.appendChild(preview);
+        row.appendChild(header);
+        const controls = document.createElement('div');
+        controls.className = 'rule-controls';
+        const nameGroup = document.createElement('div'); nameGroup.className = 'rule-input-group'; nameGroup.innerHTML = `<label class="rule-input-label">Nom</label><input class="setting-input" value="${rule.name || ''}" placeholder="Nom de la règle">`;
+        const nameInput = nameGroup.querySelector('input'); nameInput.addEventListener('change', () => { rule.name = nameInput.value; this.renderRulesEditor(); this.saveSettings(); }); controls.appendChild(nameGroup);
+        const keywordsGroup = document.createElement('div'); keywordsGroup.className = 'rule-input-group'; keywordsGroup.innerHTML = `<label class="rule-input-label">Mots-clés</label><input class="setting-input" value="${rule.keywords || ''}" placeholder="mots,clés,virgules">`;
+        const keywordsInput = keywordsGroup.querySelector('input'); keywordsInput.addEventListener('change', () => { rule.keywords = keywordsInput.value; this.saveSettings(); }); controls.appendChild(keywordsGroup);
+        const priorityGroup = document.createElement('div'); priorityGroup.className = 'rule-input-group'; priorityGroup.innerHTML = `<label class="rule-input-label">Priorité</label><input type="number" class="setting-input" value="${rule.priority}" min="0" max="5">`;
+        const priorityInput = priorityGroup.querySelector('input'); priorityInput.addEventListener('change', () => { rule.priority = parseInt(priorityInput.value); this.renderRulesEditor(); this.saveSettings(); }); controls.appendChild(priorityGroup);
+        const iconSizeGroup = document.createElement('div'); iconSizeGroup.className = 'rule-input-group'; iconSizeGroup.innerHTML = `<label class="rule-input-label">Taille icône</label><input type="number" class="setting-input" value="${rule.iconSize || 32}" min="16" max="64">`;
+        const iconSizeInput = iconSizeGroup.querySelector('input'); iconSizeInput.addEventListener('change', () => { rule.iconSize = parseInt(iconSizeInput.value); this.renderRulesEditor(); this.saveSettings(); }); controls.appendChild(iconSizeGroup);
+
+        // Sound & Icon Dropdowns
+        const soundGroup = document.createElement('div'); soundGroup.className = 'rule-input-group sound-dropdown'; soundGroup.innerHTML = `<label class="rule-input-label">Son</label><input class="setting-input" value="${rule.sound || ''}" readonly style="cursor:pointer"><div class="sound-dropdown-menu"></div>`;
+        const soundInput = soundGroup.querySelector('input'); const soundMenu = soundGroup.querySelector('.sound-dropdown-menu');
+        soundInput.addEventListener('click', (e) => { e.stopPropagation(); soundGroup.classList.toggle('open'); if (soundGroup.classList.contains('open')) { soundMenu.innerHTML = '';['', 'critical', 'warning', 'info', ...this.assets.sounds.map(s => s.name)].forEach(s => { const option = document.createElement('div'); option.className = 'sound-option'; option.innerHTML = `<span>${s || '—'}</span>${s ? `<span class="sound-play-btn">▶</span>` : ''}`; option.addEventListener('click', (e) => { if (e.target.classList.contains('sound-play-btn')) { e.stopPropagation(); this.playSound(s); } else { rule.sound = s; soundInput.value = s || ''; soundGroup.classList.remove('open'); this.saveSettings(); } }); soundMenu.appendChild(option); }); } });
+        controls.appendChild(soundGroup);
+
+        const iconGroup = document.createElement('div'); iconGroup.className = 'rule-input-group icon-dropdown'; iconGroup.innerHTML = `<label class="rule-input-label">Icône</label><input class="setting-input" value="${rule.icon || ''}" readonly style="cursor:pointer"><div class="icon-dropdown-menu"></div>`;
+        const iconInput = iconGroup.querySelector('input'); const iconMenu = iconGroup.querySelector('.icon-dropdown-menu');
+        iconInput.addEventListener('click', (e) => { e.stopPropagation(); iconGroup.classList.toggle('open'); if (iconGroup.classList.contains('open')) { iconMenu.innerHTML = '<div class="icon-grid"></div>'; const grid = iconMenu.querySelector('.icon-grid');['', '🚨', '⚠️', '⚡', '📡', 'ℹ️', '📝', ...this.assets.icons.map(i => i.name)].forEach(icon => { const option = document.createElement('div'); option.className = 'icon-option'; const iconAsset = this.assets.icons.find(i => i.name === icon); if (iconAsset) { option.innerHTML = `<img src="${iconAsset.url}">`; } else { option.innerHTML = icon || '—'; } option.addEventListener('click', () => { rule.icon = icon; iconInput.value = icon || ''; iconGroup.classList.remove('open'); this.renderRulesEditor(); this.saveSettings(); }); grid.appendChild(option); }); } });
+        controls.appendChild(iconGroup);
+
+        // FIX: Ensure colors are 7 chars for color inputs
+        const safeColor = (rule.color || '#00ffdd').substring(0, 7);
+        const safeCurveColor = (rule.curveColor || rule.color || '#00ffdd').substring(0, 7);
+        const safeFillColor = (rule.fillColor || (rule.color + '30')).substring(0, 7);
+
+        const colorGroup = document.createElement('div'); colorGroup.className = 'rule-input-group'; colorGroup.innerHTML = `<label class="rule-input-label">Couleur bulle</label><input type="color" class="setting-input" value="${safeColor}">`; colorGroup.querySelector('input').addEventListener('change', (e) => { rule.color = e.target.value; this.renderRulesEditor(); this.saveSettings(); }); controls.appendChild(colorGroup);
+        const curveColorGroup = document.createElement('div'); curveColorGroup.className = 'rule-input-group'; curveColorGroup.innerHTML = `<label class="rule-input-label">Couleur courbe</label><input type="color" class="setting-input" value="${safeCurveColor}">`; curveColorGroup.querySelector('input').addEventListener('change', (e) => { rule.curveColor = e.target.value; this.saveSettings(); }); controls.appendChild(curveColorGroup);
+        const fillColorGroup = document.createElement('div'); fillColorGroup.className = 'rule-input-group'; fillColorGroup.innerHTML = `<label class="rule-input-label">Remplissage</label><input type="color" class="setting-input" value="${safeFillColor}">`; fillColorGroup.querySelector('input').addEventListener('change', (e) => { rule.fillColor = e.target.value; this.saveSettings(); }); controls.appendChild(fillColorGroup);
+        const fillOpacityGroup = document.createElement('div'); fillOpacityGroup.className = 'rule-input-group'; fillOpacityGroup.innerHTML = `<label class="rule-input-label">Opacité <span style="color:var(--accent-cyan)">${Math.round((rule.fillOpacity || 0.3) * 100)}%</span></label><input type="range" class="setting-slider" value="${Math.round((rule.fillOpacity || 0.3) * 100)}" min="0" max="100">`; const opacitySlider = fillOpacityGroup.querySelector('input'); opacitySlider.addEventListener('input', (e) => { rule.fillOpacity = parseInt(e.target.value) / 100; fillOpacityGroup.querySelector('span').textContent = e.target.value + '%'; this.renderRulesEditor(); this.saveSettings(); }); controls.appendChild(fillOpacityGroup);
+        row.appendChild(controls);
+
+        const actions = document.createElement('div'); actions.className = 'rule-actions'; actions.innerHTML = `<label class="setting-checkbox"><input type="checkbox" ${rule.notify?.desktop ? 'checked' : ''}><span>Desktop</span></label><label class="setting-checkbox"><input type="checkbox" ${rule.notify?.discord ? 'checked' : ''}><span>Discord</span></label><button class="btn mini">🗑 Supprimer</button>`;
+        const [desktopChk, discordChk, deleteBtn] = actions.querySelectorAll('input, button');
+        desktopChk.addEventListener('change', () => { rule.notify = rule.notify || {}; rule.notify.desktop = desktopChk.checked; this.saveSettings(); });
+        discordChk.addEventListener('change', () => { rule.notify = rule.notify || {}; rule.notify.discord = discordChk.checked; this.saveSettings(); });
+        deleteBtn.addEventListener('click', () => { this.state.detectionRules.splice(idx, 1); this.renderRulesEditor(); this.saveSettings(); });
+        row.appendChild(actions);
+        document.addEventListener('click', () => { soundGroup.classList.remove('open'); iconGroup.classList.remove('open'); });
+        return row;
+      },
+
+      updateRuleFilters() {
+        const container = document.getElementById('ruleFilters');
+        container.innerHTML = `<button class="filter-pill active" data-rule="all" id="filterAll">${this.t('filterAll')}</button>`;
+        this.state.detectionRules.forEach(rule => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-pill';
+          btn.dataset.rule = rule.id;
+          let icon = rule.icon;
+          const iconAsset = this.assets.icons.find(i => i.name === rule.icon);
+          if (iconAsset) { icon = `<img src="${iconAsset.url}" style="width:16px;height:16px">`; }
+          btn.innerHTML = `${icon} ${rule.name}`;
+          btn.addEventListener('click', () => this.setRuleFilter(rule.id));
+          container.appendChild(btn);
+        });
+        document.getElementById('filterAll')?.addEventListener('click', () => this.setRuleFilter('all'));
+      },
+
+      setRuleFilter(ruleId) {
+        this.state.selectedRule = ruleId;
+        document.querySelectorAll('[data-rule]').forEach(b => { b.classList.toggle('active', b.dataset.rule === ruleId); });
+        if (this.state.viewMode === 'vertical') { this.renderVerticalView(); } else if (this.state.viewMode === 'split') { this.renderSplitCards(); }
+        this.render(true);
+      },
+
+      renderEventsToLayer(layer, context) {
+        const b = this.getVisibleTimeBounds();
+        const W = layer.offsetWidth - 50;
+        const H = layer.offsetHeight;
+        const CLUSTER_THRESHOLD = 35;
+        const items = this.state.events.filter(e => {
+          if (!e._rule) return false;
+          const t = e.timestamp.getTime();
+          return t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule);
+        }).map(ev => {
+          const t = ev.timestamp.getTime();
+          const ruleId = ev._rule.id;
+          const { x, y } = this.sampleXY(ruleId, t, W, H);
+          return { ev, x: x + 50, y, ruleId };
+        }).sort((a, b) => a.x - b.x);
+
+        let clusters = [];
+        if (this.state.groupBubbles) {
+          if (this.state.curveMode === 'multi') {
+            const ruleGroups = {}; items.forEach(it => { if (!ruleGroups[it.ruleId]) ruleGroups[it.ruleId] = []; ruleGroups[it.ruleId].push(it); });
+            Object.values(ruleGroups).forEach(group => {
+              for (const it of group) {
+                const last = clusters[clusters.length - 1];
+                if (last && last.ruleId === it.ruleId && Math.abs(last.x - it.x) < CLUSTER_THRESHOLD) { last.members.push(it.ev); last.x = (last.x * last.count + it.x) / (last.count + 1); last.y = (last.y * last.count + it.y) / (last.count + 1); last.count++; }
+                else { clusters.push({ x: it.x, y: it.y, count: 1, members: [it.ev], ruleId: it.ruleId }); }
+              }
+            });
+          } else {
+            for (const it of items) {
+              const last = clusters[clusters.length - 1];
+              if (last && Math.abs(last.x - it.x) < CLUSTER_THRESHOLD) { last.members.push(it.ev); last.x = (last.x * last.count + it.x) / (last.count + 1); last.y = (last.y * last.count + it.y) / (last.count + 1); last.count++; }
+              else { clusters.push({ x: it.x, y: it.y, count: 1, members: [it.ev], ruleId: it.ruleId }); }
+            }
+          }
+        } else {
+          clusters = items.map(it => ({ x: it.x, y: it.y, count: 1, members: [it.ev], ruleId: it.ruleId }));
+        }
+
+        const seen = new Set();
+        clusters.forEach(cluster => {
+          const clusterId = context + ':' + cluster.members.map(m => m.id).sort().join(',');
+          let el = this.dom.eventEls.get(clusterId);
+          if (!el) {
+            el = document.createElement('div');
+            el.className = 'event-bubble';
+            if (cluster.count > 1) el.classList.add('clustered'); else el.classList.add('single');
+            el.dataset.clusterId = clusterId;
+            if (cluster.count > 1) {
+              el.textContent = cluster.count;
+              el.addEventListener('click', (e) => { e.stopPropagation(); this.showClusterPopup(cluster, e); });
+            } else {
+              const icon = this.getEventIcon(cluster.members[0]); el.innerHTML = icon; el.style.setProperty('--bubble-icon-size', `${cluster.members[0]._rule?.iconSize || 32}px`);
+            }
+            el.addEventListener('mouseenter', (e) => { if (cluster.count === 1) this.showTooltip(cluster.members[0], e); });
+            el.addEventListener('mouseleave', () => this.hideTooltip());
+            layer.appendChild(el);
+            this.dom.eventEls.set(clusterId, el);
+          } else {
+            if (cluster.count > 1) { el.textContent = cluster.count; el.className = 'event-bubble clustered'; }
+            else { el.className = 'event-bubble single'; el.innerHTML = this.getEventIcon(cluster.members[0]); el.style.setProperty('--bubble-icon-size', `${cluster.members[0]._rule?.iconSize || 32}px`); }
+          }
+          el.style.left = cluster.x + 'px'; el.style.top = (cluster.y - 14) + 'px'; seen.add(clusterId);
+        });
+        for (const [id, el] of this.dom.eventEls) { if (!seen.has(id)) { el.remove(); this.dom.eventEls.delete(id); } }
+      },
+
+      showClusterPopup(cluster, e) {
+        const popup = document.getElementById('clusterPopup');
+        const tabs = document.getElementById('clusterPopupTabs');
+        const content = document.getElementById('clusterPopupContent');
+        this.currentClusterData = cluster;
+        document.getElementById('clusterPopupTitle').textContent = `${cluster.count} événements`;
+        content.innerHTML = '';
+        cluster.members.forEach(ev => {
+          const detail = document.createElement('div'); detail.className = 'cluster-event-detail';
+          const icon = this.getEventIcon(ev); const name = this.getEventName(ev);
+          // XSS Protection: Use textContent for description
+          const header = `<div style="display:flex;justify-content:space-between;margin-bottom:8px"><strong>${icon} ${name}</strong><small>${ev.timestamp.toLocaleTimeString()}</small></div>`;
+          const desc = document.createElement('div'); desc.style.cssText = "color:var(--text-secondary);font-size:0.9rem"; desc.textContent = (ev.message || ev.description || '—').substring(0, 200);
+          detail.innerHTML = header; detail.appendChild(desc); content.appendChild(detail);
+        });
+        tabs.innerHTML = ''; let addedArrows = false;
+        cluster.members.forEach((ev, i) => {
+          const tab = document.createElement('div'); tab.className = 'cluster-tab'; if (i === 0) tab.classList.add('active'); tab.innerHTML = this.getEventIcon(ev);
+          tab.addEventListener('click', () => { document.querySelectorAll('.cluster-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); content.scrollTop = content.children[i].offsetTop - content.offsetTop; });
+          tabs.appendChild(tab);
+          if (!addedArrows && i === 4 && cluster.members.length > 5) {
+            const leftArrow = document.createElement('button'); leftArrow.className = 'cluster-nav-arrow'; leftArrow.innerHTML = '‹'; leftArrow.addEventListener('click', () => { const currentTab = document.querySelector('.cluster-tab.active'); const currentIndex = [...tabs.children].indexOf(currentTab); if (currentIndex > 0) tabs.children[currentIndex - 1].click(); }); tabs.insertBefore(leftArrow, tabs.firstChild);
+            const rightArrow = document.createElement('button'); rightArrow.className = 'cluster-nav-arrow'; rightArrow.innerHTML = '›'; rightArrow.addEventListener('click', () => { const currentTab = document.querySelector('.cluster-tab.active'); const currentIndex = [...tabs.children].indexOf(currentTab); if (currentIndex < cluster.members.length - 1) tabs.children[currentIndex + 1].click(); }); tabs.appendChild(rightArrow); addedArrows = true;
+          }
+        });
+        const vw = window.innerWidth; const vh = window.innerHeight; let x = e.pageX; let y = e.pageY + 20; if (x + 450 > vw) x = vw - 450 - 20; if (y + 400 > vh) y = e.pageY - 420; if (x < 20) x = 20; if (y < 20) y = 20;
+        popup.style.left = x + 'px'; popup.style.top = y + 'px'; popup.classList.add('show');
+      },
+
+      hideClusterPopup() { document.getElementById('clusterPopup').classList.remove('show'); this.currentClusterData = null; },
+      closeIconSelector() { document.getElementById('iconSelectorModal').classList.remove('show'); this.currentIconTarget = null; },
+
+      openIconSelector(target) {
+        this.currentIconTarget = target;
+        const modal = document.getElementById('iconSelectorModal');
+        const grid = document.getElementById('iconSelectorGrid');
+        grid.innerHTML = '';
+        ['🔥', '🚨', '⚠️', '⚡', '📡', 'ℹ️', '📝', '🫧', '🔍', '📊', '⚙️'].forEach(emoji => {
+          const item = document.createElement('div'); item.className = 'icon-selector-item'; item.textContent = emoji; item.addEventListener('click', () => this.selectIcon(emoji)); grid.appendChild(item);
+        });
+        this.assets.icons.forEach(icon => {
+          const item = document.createElement('div'); item.className = 'icon-selector-item'; item.innerHTML = `<img src="${icon.url}">`; item.addEventListener('click', () => this.selectIcon(icon.name)); grid.appendChild(item);
+        });
+        modal.classList.add('show');
+      },
+
+      selectIcon(icon) {
+        if (this.currentIconTarget === 'favicon') { document.getElementById('faviconInput').value = icon; this.state.settings.faviconIcon = icon; this.updateFavicon(icon); this.updateIconPicker('favicon', icon); }
+        else if (this.currentIconTarget === 'appIcon') { document.getElementById('appIconInput').value = icon; this.state.settings.appIcon = icon; this.updateAppIcon(); this.updateIconPicker('appIcon', icon); }
+        else if (this.currentIconTarget) { const input = document.getElementById('icon' + this.currentIconTarget.charAt(0).toUpperCase() + this.currentIconTarget.slice(1)); if (input) { input.value = icon; this.state.settings.uiIcons[this.currentIconTarget] = icon; this.applyUIIcons(); this.updateIconPicker(this.currentIconTarget, icon); } }
+        this.saveSettings(); this.closeIconSelector();
+      },
+
+      updateIconPicker(target, value) {
+        let pickerId;
+        if (target === 'favicon') pickerId = 'faviconPicker'; else if (target === 'appIcon') pickerId = 'appIconPicker'; else pickerId = `icon${target.charAt(0).toUpperCase() + target.slice(1)}Picker`;
+        const picker = document.getElementById(pickerId); if (!picker) return;
+        const iconAsset = this.assets.icons.find(i => i.name === value);
+        if (iconAsset) picker.innerHTML = `<img src="${iconAsset.url}">`; else picker.innerHTML = value || '?';
+      },
+
+      renderMainGraph() {
+        const ctx = this.mainCtx; if (!ctx) return;
+        const w = ctx.canvas.width / window.devicePixelRatio - 50; const h = ctx.canvas.height / window.devicePixelRatio;
+        ctx.clearRect(0, 0, w + 50, h);
+        const b = this.getVisibleTimeBounds();
+        if (this.state.curveOutOfBounds) { const now = Date.now(); for (const [key, data] of this.curveHistory) { if (now - data.timestamp > 60000) this.curveHistory.delete(key); } }
+        ctx.save(); ctx.translate(50, 0);
+        if (this.state.curveMode === 'single') {
+          const allEvents = this.state.events.filter(e => { if (!e._rule) return false; const t = e.timestamp.getTime(); return t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule); });
+          if (allEvents.length || this.curveHistory.has('all')) {
+            const curveData = this.generateCurveData('all', allEvents, b, w, h); this.curvesCache.all = curveData; this.curveHistory.set('all', { data: curveData, timestamp: Date.now() });
+            if (curveData.pts.length > 1) { this.drawSmoothCurve(ctx, curveData.pts, this.state.graphLineColor, this.state.graphFillColor, this.state.graphFillOpacity); }
+          }
+        } else {
+          const groups = {}; this.state.events.forEach(ev => { if (!ev._rule) return; const t = ev.timestamp.getTime(); if (t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || ev._rule?.id === this.state.selectedRule)) { const ruleId = ev._rule.id; if (!groups[ruleId]) groups[ruleId] = []; groups[ruleId].push(ev); } });
+          for (const [ruleId, events] of Object.entries(groups)) {
+            const rule = this.state.detectionRules.find(r => r.id === ruleId);
+            const curveData = this.generateCurveData(ruleId, events, b, w, h); this.curvesCache[ruleId] = curveData; this.curveHistory.set(ruleId, { data: curveData, timestamp: Date.now() });
+            if (curveData.pts.length > 1) { const color = rule?.curveColor || rule?.color || '#00ff41'; const fillColor = rule?.fillColor || color + '30'; const fillOpacity = rule?.fillOpacity || 0.3; this.drawSmoothCurve(ctx, curveData.pts, color, fillColor, fillOpacity); }
+          }
+        }
+        ctx.restore();
+      },
+
+      generateCurveData(type, events, bounds, w, h) {
+        const buckets = Math.max(2, Math.min(180, Math.floor(w / 5)));
+        const span = bounds.end - bounds.start;
+
+        // Largeur d'un segment en millisecondes
+        const bw = span / (buckets - 1);
+
+        // --- CORRECTION DU TREMBLEMENT ICI ---
+        // Au lieu de baser l'origine exactement sur bounds.start (qui bouge en continu),
+        // on l'arrondit au multiple de 'bw' le plus proche.
+        // Cela fixe la grille de calcul dans le temps, même si la caméra bouge.
+        const startTime = bounds.start - span;
+        let origin = Math.floor(startTime / bw) * bw;
+        // -------------------------------------
+
+        const totalSpan = span * 3;
+        const totalBuckets = Math.ceil(totalSpan / bw) + 2; // +2 pour marge de sécurité
+
+        const counts = new Array(totalBuckets).fill(0);
+
+        // Récupération de l'historique pour éviter les sauts brutaux (optionnel mais recommandé)
+        if (this.state.curveOutOfBounds && this.curveHistory.has(type)) {
+          const hist = this.curveHistory.get(type);
+          // On ne reprend l'historique que si l'échelle n'a pas changé
+          if (hist && hist.data && Math.abs(hist.data.bw - bw) < 0.01) {
+            // Logique simplifiée pour l'exemple
+          }
+        }
+
+        for (const e of events) {
+          const t = e.timestamp.getTime();
+          // Le calcul de l'index devient stable grâce à l'origine fixe
+          const idx = Math.floor((t - origin) / bw);
+          if (idx >= 0 && idx < totalBuckets) counts[idx]++;
+        }
+
+        const smoothed = this.gaussianSmooth(counts, this.state.settings.smoothing);
+
+        // Calcul du Max visible pour l'échelle Y
+        const visibleMax = Math.max(...smoothed.filter((_, i) => {
+          const t = origin + i * bw;
+          return t >= bounds.start && t <= bounds.end;
+        }), 1);
+
+        let targetMax = this.state.scale.auto ? visibleMax * 1.2 : Math.max(1, this.state.scale.manualMax);
+
+        if (this.state.scale.auto) {
+          const lastMax = this.curveHistory.get(type)?.max || targetMax;
+          // Lissage de l'échelle Y pour éviter qu'elle saute
+          targetMax = lastMax + (targetMax - lastMax) * 0.1;
+        }
+
+        const pts = [];
+        const minY = h * 0.05;
+
+        for (let i = 0; i < totalBuckets; i++) {
+          const tx = origin + i * bw;
+          // Conversion Time -> Pixel X
+          const x = ((tx - bounds.start) / span) * w;
+          const y = Math.min(h - minY, h - (smoothed[i] / targetMax) * h * 0.85);
+          pts.push({ x, y });
+        }
+
+        return { pts, smoothed, counts, max: targetMax, bw, origin, buckets: totalBuckets };
+      },
+      gaussianSmooth(data, sigma) {
+        if (sigma <= 0) return data.slice();
+        const radius = Math.ceil(sigma * 3); const kernel = [];
+        for (let i = -radius; i <= radius; i++) kernel.push(Math.exp(-(i * i) / (2 * sigma * sigma)));
+        const sum = kernel.reduce((a, b) => a + b, 0); for (let i = 0; i < kernel.length; i++) kernel[i] /= sum;
+        const result = [];
+        for (let i = 0; i < data.length; i++) { let value = 0; for (let j = -radius; j <= radius; j++) { const idx = Math.max(0, Math.min(data.length - 1, i + j)); value += data[idx] * kernel[j + radius]; } result.push(value); }
+        return result;
+      },
+
+      drawSmoothCurve(ctx, pts, lineColor, fillColor, fillOpacity) {
+        if (pts.length < 2) return;
+        const H = ctx.canvas.height / window.devicePixelRatio;
+        ctx.save(); ctx.strokeStyle = lineColor; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length - 1; i++) { const xc = (pts[i].x + pts[i + 1].x) / 2; const yc = (pts[i].y + pts[i + 1].y) / 2; ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc); }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y); ctx.stroke();
+        ctx.lineTo(pts[pts.length - 1].x, H); ctx.lineTo(pts[0].x, H); ctx.closePath();
+        ctx.globalAlpha = fillOpacity; ctx.fillStyle = fillColor; ctx.fill();
+        ctx.restore();
+      },
+
+      sampleXY(ruleId, time, W, H) {
+        const b = this.getVisibleTimeBounds();
+        const x = ((time - b.start) / (b.end - b.start)) * W;
+        const cacheKey = this.state.curveMode === 'single' ? 'all' : ruleId;
+        const cache = this.curvesCache[cacheKey];
+        const minY = H * 0.05;
+        if (!cache) return { x, y: H - minY };
+        const { bw, origin, smoothed, max } = cache;
+        const idxF = (time - origin) / bw;
+        const i0 = Math.max(0, Math.min(smoothed.length - 1, Math.floor(idxF)));
+        const i1 = Math.max(0, Math.min(smoothed.length - 1, i0 + 1));
+        const t = Math.max(0, Math.min(1, idxF - Math.floor(idxF)));
+        const v0 = smoothed[i0]; const v1 = smoothed[i1]; const v = v0 * (1 - t) + v1 * t;
+        const y = Math.min(H - minY, H - (v / Math.max(1, max)) * H * 0.85);
+        return { x, y };
+      },
+
+      getEventIcon(ev) {
+        if (!ev._rule) return '📝';
+        const iconName = ev._rule.icon; const iconAsset = this.assets.icons.find(i => i.name === iconName);
+        if (iconAsset) { const size = ev._rule.iconSize || 20; return `<img src="${iconAsset.url}" style="width:${size}px;height:${size}px">`; }
+        return ev._rule.icon || '📝';
+      },
+      getEventName(ev) { return ev._rule?.name || 'EVENT'; },
+      getEventColor(ev) { return ev._rule?.color || '#00ff41'; },
+
+      showTooltip(ev, e) {
+        const tt = document.getElementById('eventTooltip');
+        document.getElementById('tooltipTitle').textContent = `${ev._rule.icon} ${ev._rule.name}`; // XSS Safe
+        document.getElementById('tooltipTime').textContent = ev.timestamp.toLocaleTimeString();
+        document.getElementById('tooltipDesc').textContent = ev.message || ev.description || '—';
+        tt.style.left = (e.pageX + 10) + 'px'; tt.style.top = (e.pageY - 30) + 'px'; tt.classList.add('show');
+      },
+      hideTooltip() { document.getElementById('eventTooltip').classList.remove('show'); },
+
+      getVisibleTimeBounds() {
+        const now = this.state.isPaused ? (this.state.refNow ?? Date.now()) : Date.now();
+        return { start: now - this.state.timeWindow + this.state.timeWindow * this.state.timeRange.start, end: now - this.state.timeWindow + this.state.timeWindow * this.state.timeRange.end };
+      },
+
+      render(force = false) {
+        if (this.state.viewMode === 'vertical') { this.renderSliderHistogram(); this.updateTimeTicks(); this.updateStats(); return; }
+        if (this.state.viewMode === 'split') { this.renderSplitGraph(); this.renderSliderHistogram(); this.renderSplitEvents(); this.updateSplitTimeTicks(); this.updateStats(); return; }
+        this.renderMainGraph(); this.renderSliderHistogram(); this.renderEvents(); this.updateTimeTicks(); this.updateStats();
+      },
+
+      renderEvents() { this.renderEventsToLayer(document.getElementById('eventsLayer'), 'main'); },
+      renderSplitEvents() { this.renderEventsToLayer(document.getElementById('splitEventsLayer'), 'split'); },
+
+      renderSplitGraph() {
+        const ctx = this.splitCtx; if (!ctx) return;
+        const w = ctx.canvas.width / window.devicePixelRatio - 50; const h = ctx.canvas.height / window.devicePixelRatio;
+        ctx.clearRect(0, 0, w + 50, h);
+        const b = this.getVisibleTimeBounds();
+        ctx.save(); ctx.translate(50, 0);
+        if (this.state.curveMode === 'single') {
+          const allEvents = this.state.events.filter(e => { if (!e._rule) return false; const t = e.timestamp.getTime(); return t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule); });
+          if (allEvents.length) {
+            const curveData = this.generateCurveData('all', allEvents, b, w, h);
+            this.curvesCache.all = curveData; this.curveHistory.set('all', { data: curveData, timestamp: Date.now() });
+            if (curveData.pts.length > 1) { this.drawSmoothCurve(ctx, curveData.pts, this.state.graphLineColor, this.state.graphFillColor, this.state.graphFillOpacity); }
+          }
+        } else {
+          const groups = {}; this.state.events.forEach(ev => { if (!ev._rule) return; const t = ev.timestamp.getTime(); if (t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule)) { const ruleId = ev._rule.id; if (!groups[ruleId]) groups[ruleId] = []; groups[ruleId].push(ev); } });
+          for (const [ruleId, events] of Object.entries(groups)) {
+            const rule = this.state.detectionRules.find(r => r.id === ruleId);
+            const curveData = this.generateCurveData(ruleId, events, b, w, h);
+            this.curvesCache[ruleId] = curveData; this.curveHistory.set(ruleId, { data: curveData, timestamp: Date.now() });
+            if (curveData.pts.length > 1) { const color = rule?.curveColor || rule?.color || '#00ff41'; const fillColor = rule?.fillColor || color + '30'; const fillOpacity = rule?.fillOpacity || 0.3; this.drawSmoothCurve(ctx, curveData.pts, color, fillColor, fillOpacity); }
+          }
+        }
+        ctx.restore();
+      },
+      renderSliderHistogram() {
+        const ctx = this.sliderCtx; if (!ctx) return;
+        const scale = window.devicePixelRatio || 1; const w = ctx.canvas.width / scale; const h = ctx.canvas.height / scale;
+        ctx.clearRect(0, 0, w, h);
+        const now = this.state.isPaused ? (this.state.refNow ?? Date.now()) : Date.now();
+        const ws = now - this.state.timeWindow; const we = now; const span = we - ws;
+        const buckets = Math.max(2, Math.min(180, Math.floor(w / 5))); const bw = span / (buckets - 1); const origin = Math.floor(ws / bw) * bw;
+        if (this.state.curveMode === 'single') {
+          const counts = new Array(buckets).fill(0);
+          for (const e of this.state.events) { if (!e._rule) continue; if (this.state.selectedRule !== 'all' && e._rule.id !== this.state.selectedRule) continue; const t = e.timestamp.getTime(); if (t >= ws && t <= we) { const idx = Math.floor((t - origin) / bw); if (idx >= 0 && idx < buckets) counts[idx]++; } }
+          const smoothed = this.gaussianSmooth(counts, Math.max(1, Math.floor(this.state.settings.smoothing / 2)));
+          const autoMax = Math.max(...smoothed, 1); const refMax = this.state.scale.auto ? autoMax : Math.max(1, this.state.scale.manualMax);
+          const pts = smoothed.map((c, i) => ({ x: ((origin + i * bw - ws) / span) * w, y: h - (c / refMax) * h * 0.8 }));
+          if (pts.length >= 2) this.drawSmoothCurve(ctx, pts, this.state.graphLineColor, this.state.graphFillColor, this.state.graphFillOpacity * 0.5);
+        } else {
+          this.state.detectionRules.forEach(rule => {
+            if (this.state.selectedRule !== 'all' && rule.id !== this.state.selectedRule) return;
+            const counts = new Array(buckets).fill(0);
+            for (const e of this.state.events) { if (!e._rule || e._rule.id !== rule.id) continue; const t = e.timestamp.getTime(); if (t >= ws && t <= we) { const idx = Math.floor((t - origin) / bw); if (idx >= 0 && idx < buckets) counts[idx]++; } }
+            const smoothed = this.gaussianSmooth(counts, Math.max(1, Math.floor(this.state.settings.smoothing / 2)));
+            if (Math.max(...smoothed) === 0) return;
+            const autoMax = Math.max(...smoothed, 1); const refMax = this.state.scale.auto ? autoMax : Math.max(1, this.state.scale.manualMax);
+            const pts = smoothed.map((c, i) => ({ x: ((origin + i * bw - ws) / span) * w, y: h - (c / refMax) * h * 0.8 }));
+            if (pts.length >= 2) { const color = rule.curveColor || rule.color; const fillColor = rule.fillColor || color + '30'; const fillOpacity = rule.fillOpacity || 0.3; this.drawSmoothCurve(ctx, pts, color, fillColor, fillOpacity * 0.5); }
+          });
+        }
+        document.getElementById('leftThumb').style.left = (this.state.timeRange.start * 100) + '%';
+        document.getElementById('rightThumb').style.left = (this.state.timeRange.end * 100) + '%';
+        this.updateSliderSelection(); this.updateZoomBadge();
+      },
+
+      toggleView() {
+        const modes = ['timeline', 'vertical', 'split']; const currentIdx = modes.indexOf(this.state.viewMode); const nextIdx = (currentIdx + 1) % modes.length; this.state.viewMode = modes[nextIdx];
+        const btn = document.getElementById('viewBtn'), timeline = document.getElementById('timelineWrapper'), vertical = document.getElementById('verticalView'), split = document.getElementById('splitContainer');
+        timeline.style.display = 'none'; vertical.classList.remove('active'); split.classList.remove('active'); this.curvesCache = {};
+        switch (this.state.viewMode) {
+          case 'timeline': btn.innerHTML = `${this.state.settings.uiIcons.view} <span id="viewBtnText">${this.t('viewBtnText')}</span>`; timeline.style.display = ''; this.resizeCanvas(); this.render(true); break;
+          case 'vertical': btn.innerHTML = '🔀 Vue combinée'; vertical.classList.add('active'); this.renderVerticalView(); break;
+          case 'split': btn.innerHTML = '📈 Vue timeline'; split.classList.add('active'); document.getElementById('splitCards').style.width = this.state.splitWidth + 'px'; this.resizeCanvas(); this.renderSplitCards(); this.render(true); break;
+        }
+      },
+
+      startRenderLoop() {
+        const step = (timestamp) => {
+          if (!this.state.isPaused) { const delta = timestamp - this.lastRender; if (delta >= this.state.settings.updateFreq) { this.render(); this.lastRender = timestamp; } }
+          this.animationFrame = requestAnimationFrame(step);
+        };
+        this.animationFrame = requestAnimationFrame(step);
+      },
+
+      adjustColor(color, factor) {
+        const hex = color.replace('#', ''); const r = parseInt(hex.substr(0, 2), 16); const g = parseInt(hex.substr(2, 2), 16); const b = parseInt(hex.substr(4, 2), 16);
+        const nr = Math.round(Math.min(255, r * factor)); const ng = Math.round(Math.min(255, g * factor)); const nb = Math.round(Math.min(255, b * factor));
+        return '#' + [nr, ng, nb].map(x => x.toString(16).padStart(2, '0')).join('');
+      },
+
+      updateGraphFillColor() {
+        const hex = this.state.graphFillColor; const opacity = Math.round(this.state.graphFillOpacity * 255).toString(16).padStart(2, '0');
+        document.documentElement.style.setProperty('--graph-fill', hex + opacity);
+      },
+
+      updateFavicon(icon) {
+        const favicon = document.getElementById('favicon');
+        if (icon.startsWith('http') || icon.startsWith('data:')) { favicon.href = icon; }
+        else { const iconAsset = this.assets.icons.find(i => i.name === icon); if (iconAsset) { favicon.href = iconAsset.url; } else { favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${icon}</text></svg>`; } }
+      },
+
+      updateAppIcon() {
+        const icon = this.state.settings.appIcon; const logoImg = document.getElementById('logoImg');
+        if (icon) {
+          const imported = this.assets.icons.find(i => i.name === icon);
+          if (imported) { logoImg.src = imported.url; logoImg.style.display = ''; } else if (icon.startsWith('http') || icon.startsWith('data:')) { logoImg.src = icon; logoImg.style.display = ''; } else { logoImg.style.display = 'none'; }
+        }
+      },
+
+      updateIconGallerySize() {
+        const size = this.state.settings.iconThumbSize + 'px';
+        document.querySelectorAll('.icon-item').forEach(item => { item.style.width = size; item.style.height = size; });
+      },
+
+      applyFontFamily() { document.documentElement.style.setProperty('--font-family', this.state.settings.fontFamily); },
+
+      applyUIIcons() {
+        const icons = this.state.settings.uiIcons;
+        const getIconHTML = (icon) => { const iconAsset = this.assets.icons.find(i => i.name === icon); if (iconAsset) { return `<img src="${iconAsset.url}" style="width:16px;height:16px;vertical-align:middle">`; } return icon; };
+        document.getElementById('groupBtn').innerHTML = `${getIconHTML(icons.group)} <span id="groupBtnText">${this.t('groupBtnText')}</span>`;
+        document.getElementById('searchInput').placeholder = `${icons.search} ${this.t('searchPlaceholder')}`;
+        document.getElementById('viewBtn').innerHTML = `${getIconHTML(icons.view)} <span id="viewBtnText">${this.t('viewBtnText')}</span>`;
+        document.getElementById('settingsBtn').innerHTML = `${getIconHTML(icons.settings)} <span id="settingsBtnText">${this.t('settingsBtnText')}</span>`;
+        ['favicon', 'appIcon', 'group', 'search', 'view', 'settings'].forEach(key => { const value = key === 'favicon' ? this.state.settings.faviconIcon : key === 'appIcon' ? this.state.settings.appIcon : this.state.settings.uiIcons[key]; this.updateIconPicker(key, value); });
+      },
+
+      applyUIColors() {
+        Object.entries(this.state.uiColors).forEach(([key, value]) => { const prop = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase(); document.documentElement.style.setProperty(prop, value); });
+      },
+
+      applyTranslations() {
+        const trans = this.state.translations[this.state.currentLang] || this.state.translations.fr;
+        Object.keys(trans).forEach(key => { const el = document.getElementById(key); if (el) el.textContent = trans[key]; });
+      },
+
+      t(key) { return this.state.translations[this.state.currentLang]?.[key] || this.state.translations.fr[key] || key; },
+
+      showToast(msg, type = 'success') {
+        const container = document.getElementById('toastContainer'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = msg; container.appendChild(toast);
+        setTimeout(() => { toast.style.animation = 'slideIn .3s reverse'; setTimeout(() => toast.remove(), 300); }, 3000);
+      },
+
+      loadSettings() {
+        const saved = localStorage.getItem('acidlog-settings');
+        if (saved) { try { const config = JSON.parse(saved); Object.assign(this.state, config); if (this.state.detectionProfiles && this.state.currentProfile) { this.state.detectionRules = this.state.detectionProfiles[this.state.currentProfile]?.rules || []; } } catch { } }
+      },
+
+      saveSettings() {
+        if (this.state.currentProfile && this.state.detectionProfiles[this.state.currentProfile]) { this.state.detectionProfiles[this.state.currentProfile].rules = [...this.state.detectionRules]; }
+        const config = { settings: this.state.settings, detectionProfiles: this.state.detectionProfiles, currentProfile: this.state.currentProfile, detectionRules: this.state.detectionRules, uiColors: this.state.uiColors, translations: this.state.translations, graphLineColor: this.state.graphLineColor, graphFillColor: this.state.graphFillColor, graphFillOpacity: this.state.graphFillOpacity, graphBackground: this.state.graphBackground, graphBgImage: this.state.graphBgImage, curveMode: this.state.curveMode, curveOutOfBounds: this.state.curveOutOfBounds, currentLang: this.state.currentLang, scale: this.state.scale };
+        localStorage.setItem('acidlog-settings', JSON.stringify(config));
+      },
+
+      exportConfig() {
+        const config = { settings: this.state.settings, detectionProfiles: this.state.detectionProfiles, currentProfile: this.state.currentProfile, detectionRules: this.state.detectionRules, monitors: this.state.monitors.map(m => ({ path: m.path, interval: m.interval, active: m.active })), paths: this.state.paths, uiColors: this.state.uiColors, translations: this.state.translations, graphLineColor: this.state.graphLineColor, graphFillColor: this.state.graphFillColor, graphFillOpacity: this.state.graphFillOpacity, graphBackground: this.state.graphBackground, timestamp: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = this.state.settings.configFileName || 'config.json'; a.click();
+      },
+
+      importConfig() {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'application/json';
+        input.onchange = async () => {
+          try {
+            const file = input.files[0]; const text = await file.text(); const cfg = JSON.parse(text);
+            if (cfg.settings) this.state.settings = { ...this.state.settings, ...cfg.settings }; if (cfg.detectionProfiles) this.state.detectionProfiles = cfg.detectionProfiles; if (cfg.currentProfile) this.state.currentProfile = cfg.currentProfile; if (cfg.detectionRules) this.state.detectionRules = cfg.detectionRules; if (cfg.monitors) this.state.monitors = cfg.monitors; if (cfg.paths) this.state.paths = { ...this.state.paths, ...cfg.paths }; if (cfg.uiColors) this.state.uiColors = { ...this.state.uiColors, ...cfg.uiColors }; if (cfg.translations) this.state.translations = { ...this.state.translations, ...cfg.translations }; if (cfg.graphLineColor) this.state.graphLineColor = cfg.graphLineColor; if (cfg.graphFillColor) this.state.graphFillColor = cfg.graphFillColor; if (cfg.graphFillOpacity !== undefined) this.state.graphFillOpacity = cfg.graphFillOpacity; if (cfg.graphBackground) this.state.graphBackground = cfg.graphBackground; if (cfg.curveMode) this.state.curveMode = cfg.curveMode; if (cfg.curveOutOfBounds !== undefined) this.state.curveOutOfBounds = cfg.curveOutOfBounds; if (cfg.currentLang) this.state.currentLang = cfg.currentLang; if (cfg.scale) this.state.scale = { ...this.state.scale, ...cfg.scale };
+            this.applyLoadedSettings(); this.renderRulesEditor(); this.renderDetectionProfiles(); this.applyStatsVisibility(); this.applyUIColors(); this.applyTranslations(); this.applyUIIcons(); this.applyFontFamily(); this.updateYAxisGraduation();
+            if (this.state.monitors && this.state.monitors.length) { for (const mon of this.state.monitors) { await this.startMonitor(mon); } this.updateMonitorsList(); }
+            this.showToast('Configuration importée ✔');
+          } catch (e) { this.showToast('Import échoué: ' + e.message, 'error'); }
+        };
+        input.click();
+      },
+
+      applyLoadedSettings() {
+        const $ = id => document.getElementById(id);
+        $('animSpeed').value = this.state.settings.animSpeed; $('animSpeedValue').textContent = this.state.settings.animSpeed + 'x';
+        $('smoothing').value = this.state.settings.smoothing; $('smoothingValue').textContent = this.state.settings.smoothing;
+        $('graphHeight').value = this.state.settings.graphHeight; $('graphHeightValue').textContent = this.state.settings.graphHeight + 'px';
+        $('iconSize').value = this.state.settings.iconSize || 40; $('iconSizeValue').textContent = (this.state.settings.iconSize || 40) + 'px';
+        $('curveOutOfBounds').checked = this.state.curveOutOfBounds; $('graphLineColor').value = this.state.graphLineColor; $('graphFillColor').value = this.state.graphFillColor; $('graphFillOpacity').value = Math.round(this.state.graphFillOpacity * 100); $('graphFillOpacityValue').textContent = Math.round(this.state.graphFillOpacity * 100) + '%';
+        $('masterVolume').value = this.state.settings.masterVolume; $('volumeValue').textContent = this.state.settings.masterVolume + '%';
+        $('soundEnabled').checked = this.state.settings.soundEnabled; $('desktopNotif').checked = this.state.settings.desktopNotif;
+        $('discordWebhook').value = this.state.settings.discordWebhook || ''; $('maxEvents').value = this.state.settings.maxEvents; $('updateFreq').value = this.state.settings.updateFreq; $('configFileName').value = this.state.settings.configFileName || 'config.json';
+        if (this.state.settings.logoText) { $('logoText').textContent = this.state.settings.logoText; $('logoTextInput').value = this.state.settings.logoText; }
+        if (this.state.settings.faviconIcon) { $('faviconInput').value = this.state.settings.faviconIcon; this.updateFavicon(this.state.settings.faviconIcon); }
+        if (this.state.settings.appIcon) { $('appIconInput').value = this.state.settings.appIcon; this.updateAppIcon(); }
+        if (this.state.settings.fontFamily) { $('fontFamily').value = this.state.settings.fontFamily; this.applyFontFamily(); }
+        document.querySelectorAll('[data-curvemode]').forEach(b => b.classList.toggle('active', b.dataset.curvemode === this.state.curveMode));
+        document.getElementById('langCurrent').textContent = '🌍 ' + this.state.currentLang.toUpperCase();
+        $('scaleAuto').checked = this.state.scale.auto; $('scaleSlider').value = this.state.scale.manualMax;
+        document.querySelectorAll('[data-metric]').forEach(chk => { chk.checked = !!this.state.settings.statsVisible[chk.dataset.metric]; });
+        this.setGraphBackground(this.state.graphBackground || 'gradient'); this.resizeCanvas(); this.updateGraphFillColor();
+      },
+
+      setTimeRange(r) {
+        const map = { '5m': 5 * 60e3, '15m': 15 * 60e3, '1h': 60 * 60e3, '6h': 6 * 60 * 60e3, '1d': 24 * 60 * 60e3, '1w': 7 * 24 * 60 * 60e3, '1m': 30 * 24 * 60 * 60e3 };
+        this.state.timeWindow = map[r] || map['5m']; this.state.timeRange = { start: 0, end: 1 };
+        document.getElementById('leftThumb').style.left = '0%'; document.getElementById('rightThumb').style.left = '100%';
+        this.updateSliderSelection(); this.updateZoomBadge();
+        document.querySelectorAll('[data-range]').forEach(b => { b.classList.toggle('active', b.dataset.range === r); });
+      },
+
+      updateTimeTicks() { this.renderTimeTicks(document.getElementById('timeTicks')); },
+      updateSplitTimeTicks() { this.renderTimeTicks(document.getElementById('splitTimeTicks')); },
+
+      renderTimeTicks(container) {
+        const b = this.getVisibleTimeBounds(); const n = 8; container.innerHTML = '';
+        for (let i = 0; i <= n; i++) {
+          const t = b.start + (b.end - b.start) * (i / n); const d = new Date(t);
+          const s = this.state.timeWindow < 3600000 ? d.toLocaleTimeString() : this.state.timeWindow < 86400000 ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          const span = document.createElement('span'); span.textContent = s; container.appendChild(span);
+        }
+      },
+
+      updateZoomBadge() {
+        const badge = document.getElementById('zoomBadge'); const preset = this.state.timeWindow; const visible = this.state.timeWindow * (this.state.timeRange.end - this.state.timeRange.start);
+        if (visible < preset - 1000) { badge.textContent = this.formatDuration(visible); badge.classList.remove('hide'); } else { badge.classList.add('hide'); }
+      },
+
+      formatDuration(ms) {
+        const s = Math.floor(ms / 1000); if (s < 60) return `${s}s`; const m = Math.floor(s / 60); const r = s % 60; return r ? `${m}m${r}s` : `${m}m`;
+      },
+
+      applyStatsVisibility() {
+        const vis = this.state.settings.statsVisible;
+        document.querySelectorAll('.stats-bar .stat').forEach(el => { const key = el.getAttribute('data-m'); el.classList.toggle('hidden', !vis[key]); });
+      },
+
+      updateStats() {
+        const now = Date.now(); const evts = this.state.events; const prio = (e) => e._rule?.priority || 0;
+        document.getElementById('totalEvents').textContent = evts.length;
+        document.getElementById('criticalEvents').textContent = evts.filter(e => prio(e) >= 4).length;
+        document.getElementById('eventsPerMin').textContent = evts.filter(e => e.timestamp.getTime() > now - 60000).length;
+        document.getElementById('activeMonitors').textContent = this.state.monitors.length;
+        let max = 0; for (let i = 0; i < 60; i++) { const ws = now - (i + 1) * 60000; const we = now - i * 60000; max = Math.max(max, evts.filter(e => { const t = e.timestamp.getTime(); return t >= ws && t < we; }).length); }
+        document.getElementById('peakActivity').textContent = max;
+        const weight = this.state.settings.riskWeight || 1.0; const last5 = evts.filter(e => e.timestamp.getTime() > now - 5 * 60000);
+        const score = last5.reduce((s, e) => s + prio(e), 0) * weight; document.getElementById('riskLevel').textContent = Math.round(score);
+      },
+
+      togglePause() {
+        if (this.state.pauseLock) return;
+        this.state.isPaused = !this.state.isPaused;
+        if (this.state.isPaused) { this.state.refNow = this.state.refNow ?? Date.now(); document.getElementById('liveText').textContent = 'PAUSE'; }
+        else { this.state.pauseLock = false; this.state.refNow = null; this.lastRender = 0; document.getElementById('liveText').textContent = 'LIVE'; cancelAnimationFrame(this.animationFrame); this.startRenderLoop(); }
+        this.render(true);
+      },
+
+      searchEvents(query) {
+        const q = query.toLowerCase();
+        this.state.searchResults = this.state.events.filter(e => { const msg = (e.message || e.description || '').toLowerCase(); const name = e._rule?.name || ''; return msg.includes(q) || name.toLowerCase().includes(q); });
+        document.getElementById('searchCount').textContent = `${Math.min(1, this.state.searchResults.length)}/${this.state.searchResults.length}`;
+      },
+
+      focusSearchResult(index) {
+        if (this.state.searchResults.length === 0) return;
+        this.state.searchIndex = index; document.getElementById('searchCount').textContent = `${index + 1}/${this.state.searchResults.length}`;
+        const ev = this.state.searchResults[index]; this.focusEventById(ev.id);
+      },
+
+      focusEventById(id) {
+        const ev = this.state.events.find(e => e.id == id); if (!ev) return;
+        if (!this.state.isPaused) { this.togglePause(); this.state.pauseLock = true; }
+        const m = (this.state.timeRange.start + this.state.timeRange.end) / 2; this.state.refNow = ev.timestamp.getTime() + this.state.timeWindow * (1 - m);
+        this.render(true); setTimeout(() => this.highlightBubbleForEvent(id), 30);
+      },
+
+      highlightBubbleForEvent(id) {
+        document.querySelectorAll('.event-bubble.spotlight').forEach(el => el.classList.remove('spotlight'));
+        const layer = this.state.viewMode === 'split' ? document.getElementById('splitEventsLayer') : document.getElementById('eventsLayer');
+        const candidates = [...layer.querySelectorAll('.event-bubble')]; const found = candidates.find(el => (el.dataset.members || '').split(',').includes(String(id)));
+        if (found) { found.classList.add('spotlight'); }
+      },
+
+      async connectFolder() {
+        if (!('showDirectoryPicker' in window)) { this.showToast('API File System non supportée', 'error'); return; }
+        try {
+          this.state.rootHandle = await window.showDirectoryPicker({ id: 'acidlog-root', mode: 'readwrite' });
+          this.state.paths.root = this.state.rootHandle.name || 'root';
+          await this.loadAssetsFromFolder();
+          if (this.state.monitors && this.state.monitors.length > 0) {
+            for (const mon of this.state.monitors) { try { await this.startMonitor(mon); } catch (e) { console.error('Erreur démarrage moniteur:', mon.path, e); } }
+            this.updateMonitorsList();
+          }
+          this.showToast('Dossier connecté ✔'); this.saveSettings();
+        } catch (e) { if (e.name !== 'AbortError') { this.showToast('Erreur connexion: ' + e.message, 'error'); } }
+      },
+
+      async loadAssetsFromFolder() {
+        const root = this.state.rootHandle; if (!root) return;
+        const cfgDir = await root.getDirectoryHandle('config', { create: true }).catch(() => null);
+        const iconsDir = await root.getDirectoryHandle('icons', { create: true }).catch(() => null);
+        const soundsDir = await root.getDirectoryHandle('sounds', { create: true }).catch(() => null);
+        const fontsDir = await root.getDirectoryHandle('fonts', { create: true }).catch(() => null);
+
+        if (cfgDir) {
+          try {
+            const configFile = await cfgDir.getFileHandle(this.state.settings.configFileName || 'config.json', { create: false }).catch(() => null);
+            if (configFile) {
+              const file = await configFile.getFile(); const text = await file.text(); const config = JSON.parse(text);
+              if (config.detectionProfiles) this.state.detectionProfiles = config.detectionProfiles;
+              if (config.currentProfile) this.state.currentProfile = config.currentProfile;
+              if (config.detectionRules) this.state.detectionRules = config.detectionRules;
+              if (config.settings) this.state.settings = { ...this.state.settings, ...config.settings };
+              if (config.paths) this.state.paths = { ...this.state.paths, ...config.paths };
+              if (config.monitors) { this.state.monitors = config.monitors.map(m => ({ path: m.path, interval: m.interval || 5000, active: m.active !== false, lastPosition: 0, timer: null })); }
+              if (config.uiColors) this.state.uiColors = { ...this.state.uiColors, ...config.uiColors };
+              if (config.translations) this.state.translations = { ...this.state.translations, ...config.translations };
+              if (config.graphLineColor) this.state.graphLineColor = config.graphLineColor;
+              if (config.graphFillColor) this.state.graphFillColor = config.graphFillColor;
+              if (config.graphFillOpacity !== undefined) this.state.graphFillOpacity = config.graphFillOpacity;
+              if (config.graphBackground) this.state.graphBackground = config.graphBackground;
+              if (config.curveMode) this.state.curveMode = config.curveMode;
+              if (config.curveOutOfBounds !== undefined) this.state.curveOutOfBounds = config.curveOutOfBounds;
+              if (config.currentLang) this.state.currentLang = config.currentLang;
+              if (config.scale) this.state.scale = { ...this.state.scale, ...config.scale };
+              this.applyLoadedSettings(); this.renderRulesEditor(); this.renderDetectionProfiles(); this.applyStatsVisibility(); this.applyUIColors(); this.applyTranslations(); this.applyUIIcons(); this.applyFontFamily(); this.updateYAxisGraduation();
+            }
+          } catch (e) { console.error('Erreur chargement config:', e); }
+        }
+
+        this.assets.icons = [];
+        if (iconsDir) {
+          try { for await (const entry of iconsDir.values()) { if (entry.kind === 'file' && /\.(png|svg|jpg|jpeg|gif)$/i.test(entry.name)) { const file = await entry.getFile(); const url = URL.createObjectURL(file); const name = entry.name.replace(/\.[^.]+$/, ''); this.assets.icons.push({ name, url }); this.state.paths.icons.push(entry.name); } } } catch (e) { console.error('Erreur chargement icônes:', e); }
+        }
+
+        this.assets.sounds = [];
+        if (soundsDir) {
+          try { this.initAudio(); for await (const entry of soundsDir.values()) { if (entry.kind === 'file' && /\.(mp3|wav|ogg|m4a)$/i.test(entry.name)) { const file = await entry.getFile(); const arrayBuffer = await file.arrayBuffer(); const buffer = await this.audioContext.decodeAudioData(arrayBuffer); const soundName = entry.name.replace(/\.[^.]+$/, ''); this.audioBuffers.set(soundName, buffer); this.assets.sounds.push({ name: soundName }); this.state.paths.sounds.push(entry.name); } } } catch (e) { console.error('Erreur chargement sons:', e); }
+        }
+
+        this.assets.fonts = [];
+        if (fontsDir) {
+          try { for await (const entry of fontsDir.values()) { if (entry.kind === 'file' && /\.(woff|woff2|ttf|otf)$/i.test(entry.name)) { const file = await entry.getFile(); const url = URL.createObjectURL(file); const name = entry.name.replace(/\.[^.]+$/, ''); this.assets.fonts.push({ name, url }); this.state.paths.fonts.push(entry.name); const style = document.createElement('style'); style.textContent = ` @font-face { font-family: '${name}'; src: url('${url}'); font-display: swap; } `; document.head.appendChild(style); this.state.settings.customFonts.push(name); } } } catch (e) { console.error('Erreur chargement polices:', e); }
+        }
+        this.renderAssetsLists(); this.updateAppIcon();
+      },
+
+      renderAssetsLists() {
+        const iconsList = document.getElementById('iconsList'); iconsList.innerHTML = '';
+        this.assets.icons.forEach(ic => { const d = document.createElement('div'); d.className = 'icon-item'; d.style.width = (this.state.settings.iconThumbSize || 40) + 'px'; d.style.height = (this.state.settings.iconThumbSize || 40) + 'px'; d.innerHTML = `<img src="${ic.url}" alt="${ic.name}" title="${ic.name}">`; d.addEventListener('click', () => { document.getElementById('appIconInput').value = ic.name; this.state.settings.appIcon = ic.name; this.updateAppIcon(); this.updateIconPicker('appIcon', ic.name); this.saveSettings(); }); iconsList.appendChild(d); });
+        const soundsList = document.getElementById('soundsList'); soundsList.innerHTML = '';
+        this.assets.sounds.forEach(s => { const b = document.createElement('button'); b.className = 'btn mini'; b.textContent = '▶ ' + s.name; b.addEventListener('click', () => this.playSound(s.name)); soundsList.appendChild(b); });
+        const fontsList = document.getElementById('fontsList');
+        if (fontsList) { fontsList.innerHTML = ''; this.assets.fonts.forEach(f => { const item = document.createElement('div'); item.className = 'font-item'; item.textContent = f.name; item.style.fontFamily = `'${f.name}'`; item.addEventListener('click', () => { this.state.settings.fontFamily = `'${f.name}', sans-serif`; document.getElementById('fontFamily').value = this.state.settings.fontFamily; this.applyFontFamily(); this.saveSettings(); }); fontsList.appendChild(item); }); }
+        const fontSelect = document.getElementById('fontFamily');
+        if (fontSelect) { this.state.settings.customFonts?.forEach(fontName => { const existing = [...fontSelect.options].find(o => o.value.includes(fontName)); if (!existing) { const option = document.createElement('option'); option.value = `'${fontName}', sans-serif`; option.textContent = fontName; fontSelect.appendChild(option); } }); }
+      },
+
+      async pickAndImportIcons() {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
+        input.onchange = async () => { await this.importIconFiles([...input.files]); }; input.click();
+      },
+
+      async importIconFiles(files) {
+        for (const file of files) {
+          const url = URL.createObjectURL(file); const name = file.name.replace(/\.[^.]+$/, '');
+          if (!this.assets.icons.find(i => i.name === name)) {
+            this.assets.icons.push({ name, url });
+            if (this.state.rootHandle) { try { const dir = await this.state.rootHandle.getDirectoryHandle('icons', { create: true }); const handle = await dir.getFileHandle(file.name, { create: true }); const writable = await handle.createWritable(); await writable.write(await file.arrayBuffer()); await writable.close(); this.state.paths.icons.push(file.name); } catch (e) { console.error('Erreur sauvegarde icône:', e); } }
+          }
+        }
+        this.renderAssetsLists(); this.renderRulesEditor(); this.saveSettings();
+      },
+
+      async pickAndImportSounds() {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'audio/*'; input.multiple = true;
+        input.onchange = async () => {
+          for (const file of input.files) {
+            const arrayBuffer = await file.arrayBuffer(); this.initAudio(); const buffer = await this.audioContext.decodeAudioData(arrayBuffer); const name = file.name.replace(/\.[^.]+$/, '');
+            if (!this.audioBuffers.has(name)) {
+              this.audioBuffers.set(name, buffer); this.assets.sounds.push({ name });
+              if (this.state.rootHandle) { try { const dir = await this.state.rootHandle.getDirectoryHandle('sounds', { create: true }); const handle = await dir.getFileHandle(file.name, { create: true }); const writable = await handle.createWritable(); await writable.write(arrayBuffer); await writable.close(); this.state.paths.sounds.push(file.name); } catch (e) { console.error('Erreur sauvegarde son:', e); } }
+            }
+          }
+          this.renderAssetsLists(); this.renderRulesEditor(); this.saveSettings();
+        };
+        input.click();
+      },
+
+      async pickAndImportFonts() {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = '.woff,.woff2,.ttf,.otf'; input.multiple = true;
+        input.onchange = async () => {
+          for (const file of input.files) {
+            const url = URL.createObjectURL(file); const name = file.name.replace(/\.[^.]+$/, '');
+            if (!this.assets.fonts.find(f => f.name === name)) {
+              this.assets.fonts.push({ name, url });
+              const style = document.createElement('style'); style.textContent = ` @font-face { font-family: '${name}'; src: url('${url}'); font-display: swap; } `; document.head.appendChild(style);
+              if (!this.state.settings.customFonts) { this.state.settings.customFonts = []; } this.state.settings.customFonts.push(name);
+              if (this.state.rootHandle) { try { const dir = await this.state.rootHandle.getDirectoryHandle('fonts', { create: true }); const handle = await dir.getFileHandle(file.name, { create: true }); const writable = await handle.createWritable(); await writable.write(await file.arrayBuffer()); await writable.close(); this.state.paths.fonts.push(file.name); } catch (e) { console.error('Erreur sauvegarde police:', e); } }
+            }
+          }
+          this.renderAssetsLists(); this.saveSettings();
+        };
+        input.click();
+      },
+
+      async browseLogFile() {
+        if (!('showOpenFilePicker' in window)) { this.showToast('API File System non supportée', 'error'); return; }
+        try {
+          const [handle] = await window.showOpenFilePicker({ types: [{ description: 'Log files', accept: { 'text/*': ['.log', '.txt'] } }] });
+          const path = handle.name; document.getElementById('logPath').value = path;
+        } catch (e) { if (e.name !== 'AbortError') { this.showToast('Erreur sélection fichier', 'error'); } }
+      },
+
+      async addLogMonitor() {
+        const path = document.getElementById('logPath').value.trim(); const interval = parseInt(document.getElementById('refreshInterval').value) || 5;
+        if (!path) { this.showToast('Chemin manquant', 'error'); return; }
+        const existingMon = this.state.monitors.find(m => m.path === path);
+        if (existingMon) { this.showToast('Déjà ajouté', 'error'); return; }
+        const mon = { path, interval: interval * 1000, lastPosition: 0, active: true, timer: null };
+        this.state.monitors.push(mon); await this.startMonitor(mon); this.updateMonitorsList(); this.state.paths.logs = [...new Set([...this.state.paths.logs, path])]; document.getElementById('logPath').value = ''; this.showToast(`Moniteur ajouté: ${path}`); this.saveSettings();
+      },
+
+      async startMonitor(mon) {
+        if (!this.state.rootHandle) { console.error('Dossier racine non connecté'); return; }
+        if (mon.timer) { clearInterval(mon.timer); mon.timer = null; }
+        let isFirstRun = mon.lastPosition === 0;
+        const tick = async () => {
+          if (!mon.active || !this.state.rootHandle) return;
+          try {
+            const parts = mon.path.split('/').filter(Boolean); if (parts.length === 0) throw new Error('Chemin vide');
+            let handle = this.state.rootHandle;
+            for (let i = 0; i < parts.length - 1; i++) { handle = await handle.getDirectoryHandle(parts[i]); }
+            const fileName = parts[parts.length - 1]; const fileHandle = await handle.getFileHandle(fileName); const file = await fileHandle.getFile();
+            if (isFirstRun && file.size > 0) { mon.lastPosition = file.size; isFirstRun = false; return; }
+            if (file.size > mon.lastPosition) {
+              const slice = file.slice(mon.lastPosition); const text = await slice.text(); mon.lastPosition = file.size;
+              const lines = text.split('\n').filter(line => line.trim().length > 0);
+              for (const line of lines) { this.parseLogLine(line, mon.path, false); }
+            } else if (file.size < mon.lastPosition) { mon.lastPosition = file.size; }
+          } catch (e) { console.error(`Erreur lecture ${mon.path}:`, e.message); }
+        };
+        try { await tick(); mon.timer = setInterval(tick, mon.interval); } catch (e) { console.error(`Impossible de démarrer moniteur ${mon.path}:`, e); this.showToast(`Erreur moniteur ${mon.path}`, 'error'); }
+      },
+
+      updateMonitorsList() {
+        const container = document.getElementById('logMonitors'); container.innerHTML = '';
+        this.state.monitors.forEach((m, idx) => {
+          const el = document.createElement('div'); el.style.cssText = 'padding:8px;background:var(--bg-tertiary);border-radius:6px;margin-bottom:6px;display:flex;gap:8px;align-items:center;';
+          el.innerHTML = `<div style="flex:1;font-size:.85rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis">${m.path}</div><label style="font-size:.75rem">Intervalle (s)</label><input type="number" value="${Math.round(m.interval / 1000)}" min="1" class="setting-input" style="width:80px"><label class="setting-checkbox"><input type="checkbox" ${m.active ? 'checked' : ''}><span>Actif</span></label><button class="btn mini">🗑</button>`;
+          const [intervalInput, activeChk, delBtn] = [...el.querySelectorAll('input,button')].slice(0, 3);
+          intervalInput.addEventListener('change', async () => { m.interval = Math.max(1000, parseInt(intervalInput.value) * 1000); if (m.timer) { clearInterval(m.timer); m.timer = null; } await this.startMonitor(m); this.saveSettings(); });
+          activeChk.addEventListener('change', () => { m.active = activeChk.checked; this.saveSettings(); });
+          delBtn.addEventListener('click', () => { if (m.timer) clearInterval(m.timer); this.state.monitors.splice(idx, 1); this.updateMonitorsList(); this.showToast(`Moniteur retiré: ${m.path}`); this.saveSettings(); });
+          container.appendChild(el);
+        });
+        document.getElementById('activeMonitors').textContent = this.state.monitors.length;
+      },
+
+      parseLogLine(line, source, dryRun = true) {
+        let ev = null;
+        let ts = new Date();
+        let msg = line;
+
+        try {
+          const j = JSON.parse(line);
+          ev = { ...j, source };
+          if (j.timestamp) { ts = new Date(j.timestamp); }
+          msg = j.message || j.description || j.title || JSON.stringify(j);
+        } catch {
+          const bracketMatch = line.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]/);
+          if (bracketMatch) {
+            ts = new Date(bracketMatch[1]);
+            msg = line.replace(bracketMatch[0], '').trim();
+          } else {
+            const isoMatch = line.match(/(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)/);
+            if (isoMatch) {
+              ts = new Date(isoMatch[1]);
+              msg = line.replace(isoMatch[0], '').trim();
+            }
+          }
+          ev = { message: msg, source };
+        }
+
+        ev.timestamp = isNaN(ts.getTime()) ? new Date() : ts;
+
+        const searchText = (line + ' ' + JSON.stringify(ev)).toLowerCase();
+        let bestRule = null;
+
+        for (const r of this.state.detectionRules) {
+          const keys = (r.keywords || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+          if (!keys.length) continue;
+
+          if (keys.some(k => searchText.includes(k))) {
+            if (!bestRule || r.priority > bestRule.priority) {
+              bestRule = r;
+            }
+          }
+        }
+
+        if (!bestRule) {
+          bestRule = { id: 'r_uncat', name: 'Uncategorized', keywords: '', type: 'info', priority: 0, sound: '', icon: '📝', iconSize: 24, color: '#888888', curveColor: '#888888', fillColor: '#88888830', fillOpacity: 0.2, transparent: false, notify: {} };
+        }
+
+        ev._rule = bestRule;
+        ev.type = bestRule.type;
+
+        if (!dryRun) this.addEvent(ev);
+        return ev;
+      },
+
+      addEvent(e) {
+        const evt = { id: Date.now() + Math.random(), ...e, timestamp: e.timestamp instanceof Date ? e.timestamp : new Date() };
+        if (!evt._rule) return;
+
+        this.state.events.push(evt);
+        if (this.state.events.length > this.state.settings.maxEvents) { this.state.events = this.state.events.slice(-this.state.settings.maxEvents); }
+
+        const soundKey = evt._rule?.sound;
+        if (this.state.settings.soundEnabled && soundKey) { this.playSound(soundKey); }
+
+        this.routeNotifications(evt);
+
+        if (this.state.viewMode === 'vertical') { this.insertVerticalCard(evt); }
+        else if (this.state.viewMode === 'split') { this.insertSplitCard(evt); }
+
+        this.render(true);
+      },
+
+      insertVerticalCard(ev) {
+        if (this.state.selectedRule !== 'all' && ev._rule?.id !== this.state.selectedRule) return;
+        const cont = document.getElementById('verticalView'); const card = this.buildCard(ev); cont.prepend(card); setTimeout(() => card.classList.add('show'), 10);
+      },
+
+      insertSplitCard(ev) {
+        if (this.state.selectedRule !== 'all' && ev._rule?.id !== this.state.selectedRule) return;
+        const cont = document.getElementById('splitCards'); const card = this.buildCard(ev, true); cont.prepend(card); setTimeout(() => card.classList.add('show'), 10);
+        const cards = cont.querySelectorAll('.event-card'); if (cards.length > 200) { cards[cards.length - 1].remove(); }
+      },
+
+      buildCard(ev, clickable = false) {
+        const card = document.createElement('div');
+        card.className = `event-card ${ev.type}` + (clickable ? ' clickable' : '');
+        const icon = this.getEventIcon(ev);
+        const name = this.getEventName(ev);
+        card.dataset.eid = ev.id;
+        // XSS Protection for card description
+        const header = `<div class="event-card-header"><div class="event-card-title">${icon} ${name}</div><div class="event-card-time">${ev.timestamp.toLocaleTimeString()}</div></div>`;
+        const desc = document.createElement('div');
+        desc.className = "event-card-desc";
+        desc.textContent = ev.message || ev.description || '';
+        card.innerHTML = header;
+        card.appendChild(desc);
+        if (clickable) { card.addEventListener('click', () => this.focusEventById(ev.id)); }
+        return card;
+      },
+
+      renderVerticalView() {
+        const cont = document.getElementById('verticalView'); cont.innerHTML = '';
+        const b = this.getVisibleTimeBounds();
+        const list = this.state.events.filter(e => { if (!e._rule) return false; const t = e.timestamp.getTime(); return t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule); }).sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
+        list.forEach((ev, i) => { const card = this.buildCard(ev, false); cont.appendChild(card); setTimeout(() => card.classList.add('show'), i * 50); });
+      },
+
+      renderSplitCards() {
+        const cont = document.getElementById('splitCards'); cont.innerHTML = '';
+        const b = this.getVisibleTimeBounds();
+        const list = this.state.events.filter(e => { if (!e._rule) return false; const t = e.timestamp.getTime(); return t >= b.start && t <= b.end && (this.state.selectedRule === 'all' || e._rule?.id === this.state.selectedRule); }).sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
+        list.forEach((ev, i) => { const card = this.buildCard(ev, true); cont.appendChild(card); setTimeout(() => card.classList.add('show'), i * 50); });
+      },
+
+      async routeNotifications(ev) {
+        const rule = ev._rule;
+        const wantDesktop = this.state.settings.desktopNotif && rule?.notify?.desktop;
+        const wantDiscord = !!this.state.settings.discordWebhook && rule?.notify?.discord;
+        const name = this.getEventName(ev);
+        const body = ev.message || ev.description || '—';
+        const time = ev.timestamp.toLocaleTimeString();
+        if (wantDesktop && 'Notification' in window) { if (Notification.permission === 'granted') { try { new Notification(name, { body }); } catch { } } }
+        if (wantDiscord) { try { await fetch(this.state.settings.discordWebhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: `**${name}** — ${time}\n${body}` }) }); } catch { } }
+      },
+
+      initAudio() {
+        if (!this.audioContext) { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+      },
+
+      playSound(type) {
+        if (!this.state.settings.soundEnabled && type !== 'test') return;
+        this.initAudio();
+        if (this.audioBuffers.has(type)) { const source = this.audioContext.createBufferSource(); source.buffer = this.audioBuffers.get(type); const gain = this.audioContext.createGain(); gain.gain.value = this.state.settings.masterVolume / 100; source.connect(gain); gain.connect(this.audioContext.destination); source.start(); return; }
+        const osc = this.audioContext.createOscillator(); const gain = this.audioContext.createGain(); osc.connect(gain); gain.connect(this.audioContext.destination); const vol = (this.state.settings.masterVolume / 100) * 0.1; gain.gain.value = vol;
+        if (type === 'critical') { osc.frequency.value = 800; osc.type = 'square'; for (let i = 0; i < 3; i++) { gain.gain.setValueAtTime(vol, this.audioContext.currentTime + i * 0.1); gain.gain.setValueAtTime(0, this.audioContext.currentTime + i * 0.1 + 0.05); } }
+        else if (type === 'warning') { osc.frequency.value = 600; osc.type = 'triangle'; gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.2); }
+        else { osc.frequency.value = 440; osc.type = 'sine'; gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1); }
+        osc.start(); osc.stop(this.audioContext.currentTime + 0.3);
+      },
+
+      startAutoSave() {
+        if (this.saveTimer) clearInterval(this.saveTimer);
+        this.saveTimer = setInterval(() => { this.saveConfigToFolder(); }, (this.state.settings.saveInterval || 5) * 60 * 1000);
+      },
+
+      async saveConfigToFolder() {
+        if (!this.state.rootHandle) return;
+        try {
+          const configDir = await this.state.rootHandle.getDirectoryHandle('config', { create: true });
+          const configFile = await configDir.getFileHandle(this.state.settings.configFileName || 'config.json', { create: true });
+          const config = { settings: this.state.settings, detectionProfiles: this.state.detectionProfiles, currentProfile: this.state.currentProfile, detectionRules: this.state.detectionRules, monitors: this.state.monitors.map(m => ({ path: m.path, interval: m.interval, active: m.active })), paths: this.state.paths, uiColors: this.state.uiColors, translations: this.state.translations, graphLineColor: this.state.graphLineColor, graphFillColor: this.state.graphFillColor, graphFillOpacity: this.state.graphFillOpacity, graphBackground: this.state.graphBackground, curveMode: this.state.curveMode, curveOutOfBounds: this.state.curveOutOfBounds, currentLang: this.state.currentLang, scale: this.state.scale, timestamp: new Date().toISOString() };
+          const writable = await configFile.createWritable(); await writable.write(JSON.stringify(config, null, 2)); await writable.close();
+        } catch (e) { console.error('Failed to save config:', e); }
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => AcidLog.init());
+  </script>
+</body>
+
+</html>
