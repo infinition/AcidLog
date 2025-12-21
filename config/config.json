@@ -113,6 +113,11 @@
       "Cartoon",
       "Arial",
       "Creamy",
+      "Viking",
+      "ArialB",
+      "Arial",
+      "Creamy",
+      "Cartoon",
       "Viking"
     ],
     "uiIconSize": 24,
@@ -1034,6 +1039,8 @@
       "skull.png",
       "acidlog.png",
       "bjorn.png",
+      "skull.png",
+      "acidlog.png",
       "skull.png"
     ],
     "sounds": [
@@ -1111,6 +1118,11 @@
       "Cartoon.ttf",
       "Arial.ttf",
       "Creamy.ttf",
+      "Viking.TTF",
+      "ArialB.TTF",
+      "Arial.ttf",
+      "Creamy.ttf",
+      "Cartoon.ttf",
       "Viking.TTF"
     ]
   },
@@ -1172,5 +1184,5 @@
     "auto": true,
     "manualMax": 50
   },
-  "timestamp": "2025-12-17T21:13:26.237Z"
+  "timestamp": "2025-12-17T21:47:29.923Z"
 }
